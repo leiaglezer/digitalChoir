@@ -1,4 +1,8 @@
-Instructions for how to run:
+# Digital Choir
+
+An interactive Python application that detects mouse and hand motion to conduct a digital choir
+
+## Installation
 
 1. Clone the repository for digitalchoir.
 2. Create a new virtual environment. To do this on a Mac, use the command: `python3 -m venv /path/to/new/virtual/environment`
