@@ -39,9 +39,15 @@ class MainMenu(Menu):
             #set Surface to black to reset it
             self.game.display.fill(self.game.BLACK)
 
+            #draw background image
+            self.game.display.blit(pygame.image.load('MenuSystem/stage.png'), (0, 0))
+
             #add text to Surface
-            self.game.draw_text('Main Menu', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 20)
-            self.game.draw_text('Start Musical Composer', 20, self.startx, self.starty)
+            self.game.draw_text('Digital Conductor', 80, self.game.DISPLAY_W / 2 + 10, self.game.DISPLAY_H / 2 - 45, self.game.BLACK)
+
+            self.game.draw_text('Digital Conductor', 80, self.game.DISPLAY_W / 2 + 15, self.game.DISPLAY_H / 2 -50, self.game.GREEN)
+
+
 
             #adds Surface to Window and Window to Screen
             self.blit_screen()

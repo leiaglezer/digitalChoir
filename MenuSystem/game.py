@@ -29,16 +29,22 @@ class Game:
         # Game is not being played when first starting up, start key therefore is false
         self.START_KEY = False
 
+        #background image
+        self.background = pygame.image.load('MenuSystem/stage.png')
         # canvas size
-        self.DISPLAY_W, self.DISPLAY_H = 800, 800
+        self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H))
         # font for game
-        self.font_name = 'MenuSystem/8-BIT WONDER.TTF'
+        self.font_name = 'MenuSystem/Kemco Pixel Bold.ttf'
 
-        self.BLACK, self.WHITE = (0, 0, 0), (255, 255, 255)
+
+
+        self.BLACK, self.WHITE  = (24,22,23), (255, 255, 255)
+        self.BLUE, self.PINK = (97, 113, 255), (207, 29, 207)
+        self.GREEN = (48, 181, 4)
         self.curr_menu = MainMenu(self)
         self.blobList = [Player(), Player(), Player()]
 
@@ -114,9 +120,9 @@ class Game:
         self.START_KEY = False
 
     # self is a reference to the game object
-    def draw_text(self, text, size, x, y):
+    def draw_text(self, text, size, x, y, color):
         font = pygame.font.Font(self.font_name, size)
-        text_surface = font.render(text, True, self.WHITE)
+        text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.center = (x, y)
         self.display.blit(text_surface, text_rect)
