@@ -1,7 +1,6 @@
 import pygame
 from menu import MainMenu
-from SpriteSheet.spritesheet import Spritesheet
-from Animation.player import Player
+from player import Player
 
 # chordList: [[C,E,D], [D,F,A], [E,G,B], [F,A,C], [G,B,D], [A,C,E], [B,D,F]]
 # chord encoding: A=0, B=1, C=2, D=3, E=4, F=5, G=6
@@ -30,7 +29,7 @@ class Game:
         self.START_KEY = False
 
         #background image
-        self.background = pygame.image.load('MenuSystem/stage.png')
+        self.background = pygame.image.load('stage.png')
         # canvas size
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
@@ -38,7 +37,7 @@ class Game:
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H))
         # font for game
-        self.font_name = 'MenuSystem/Kemco Pixel Bold.ttf'
+        self.font_name = 'Kemco Pixel Bold.ttf'
 
 
 

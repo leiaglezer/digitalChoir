@@ -1,10 +1,9 @@
 import pygame
-from SpriteSheet.spritesheet import Spritesheet
+from spritesheet import Spritesheet
 
 
-class Player(pygame.sprite.Sprite):
+class Player:
     def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
         self.note_frames = self.load_frames()
         self.rect = self.note_frames[0].get_rect()
         self.x = self.rect.x
@@ -111,7 +110,7 @@ class Player(pygame.sprite.Sprite):
         display.blit(self.current_image, (self.x, self.y))
 
     def load_frames(self):
-        my_spritesheet = Spritesheet('SpriteSheet/choir.png')
+        my_spritesheet = Spritesheet('choir.png')
 
         self.note_frames = [my_spritesheet.parse_sprite("A0.png"),
                             my_spritesheet.parse_sprite("A1.png"),

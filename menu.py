@@ -40,7 +40,7 @@ class MainMenu(Menu):
             self.game.display.fill(self.game.BLACK)
 
             #draw background image
-            self.game.display.blit(pygame.image.load('MenuSystem/stage.png'), (0, 0))
+            self.game.display.blit(pygame.image.load('stage.png'), (0, 0))
 
             #add text to Surface
             self.game.draw_text('Digital Conductor', 80, self.game.DISPLAY_W / 2 + 10, self.game.DISPLAY_H / 2 - 45, self.game.BLACK)
