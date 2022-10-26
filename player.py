@@ -27,8 +27,8 @@ class Player:
         self.current_image = self.note_frames[frame]
 
     def set_location(self, frame):
-        self.x = frame * 200 + 60
-        self.y = 280
+        self.x = frame * 200 + 50
+        self.y = 100
 
     def set_selected(self, mouseX, mouseY):
         # if blob drawing is under mouse click, that blob is selected

@@ -29,21 +29,20 @@ class Game:
         self.START_KEY = False
 
         #background image
-        self.background = pygame.image.load('stage.png')
+        self.background = pygame.image.load('mainstage.png')
         # canvas size
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         # window to show up on screen
-        self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H))
+        self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
         # font for game
         self.font_name = 'Kemco Pixel Bold.ttf'
 
 
-
-        self.BLACK, self.WHITE  = (24,22,23), (255, 255, 255)
+        self.BLACK, self.WHITE = (13,11,11), (117,73,34)
         self.BLUE, self.PINK = (97, 113, 255), (207, 29, 207)
-        self.GREEN = (48, 181, 4)
+        self.GREEN, self.DARK_RED = (48, 181, 4), (84,0,0)
         self.curr_menu = MainMenu(self)
         self.blobList = [Player(), Player(), Player()]
 
