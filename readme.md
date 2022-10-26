@@ -2,6 +2,10 @@
 
 An interactive Python application that detects mouse and hand motion to conduct a digital choir
 
+## Hardware
+1. Upload `RightGloveMain.ino` onto the Arduino Nano 33 BLE for the right glove.
+2. Ensure the board is on before starting the digital choir game.
+
 ## Installation
 
 1. Clone the repository for digitalchoir.
