@@ -6,6 +6,6 @@ from game import Game
 #creates game object
 g = Game()
 
-while g.running:
+while g.RUNNING:
     g.curr_menu.display_menu()
     g.game_loop()

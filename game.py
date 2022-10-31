@@ -1,50 +1,46 @@
+import time
+
 import pygame
+from pygame import mixer
 from menu import MainMenu
 from player import Player
-
-# chordList: [[C,E,D], [D,F,A], [E,G,B], [F,A,C], [G,B,D], [A,C,E], [B,D,F]]
-# chord encoding: A=0, B=1, C=2, D=3, E=4, F=5, G=6
-# chord progression we'll use:
-# C major: C – E – G
-# D minor: D – F – A
-# E minor: E – G – B
-# F major: F – A – C
-# G major: G – B – D
-# A minor: A – C – E
-# B diminished: B – D – F
-
-#we'll use one scale, C Major for now, but eventually this will be in its own class w a switch statement based on a button/slider input.
-chordList = [[2, 4, 3], [3, 5, 0], [4, 6, 1], [5, 0, 2], [6, 1, 3], [0, 2, 4], [1, 3, 5]]
-pitchList = [0, 1, 2, 3, 4, 5, 6]
 
 
 class Game:
     def __init__(self):
+        self.curr_pitch = None
+        self.status = 'all'
+        self.event = None
+        self.curr_volume = None
+
         pygame.init()
         # self.running will be true when game is on
-        self.running = True
+        self.RUNNING = True
         # self.playing will be true when game is being played
-        self.playing = False
-        # Game is not being played when first starting up, start key therefore is false
+        self.PLAYING = False
+        # flag to switch between splash & game screen
         self.START_KEY = False
-
-        #background image
-        self.background = pygame.image.load('mainstage.png')
+        # background image
+        self.background = pygame.image.load('splash.png')
         # canvas size
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
-        # font for game
-        self.font_name = 'Kemco Pixel Bold.ttf'
-
-
-        self.BLACK, self.WHITE = (13,11,11), (117,73,34)
+        self.BLACK, self.WHITE = (13, 11, 11), (117, 73, 34)
         self.BLUE, self.PINK = (97, 113, 255), (207, 29, 207)
-        self.GREEN, self.DARK_RED = (48, 181, 4), (84,0,0)
+        self.GREEN, self.DARK_RED = (48, 181, 4), (84, 0, 0)
+        # menu to start on
         self.curr_menu = MainMenu(self)
+        # instantiate three blobs
         self.blobList = [Player(), Player(), Player()]
+        self.curr_chord = None
+
+        # setup music player
+        mixer.init()
+        pygame.mixer.set_num_channels(50)
+        self.wavList = []
 
         # set initial image/location
         for blob in self.blobList:
@@ -53,39 +49,48 @@ class Game:
 
     def game_loop(self):
         # only plays when player is IN game
-        while self.playing:
-            # check inputs, checking if player wants to quit game
+        while self.PLAYING:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    # stop game from running
-                    self.running = False
-                    # stop game loop
-                    self.playing = False
-                    # stop display of main menu
-                    self.curr_menu.run_display = False
-
-                # if any keyboard item has been pressed
-                if event.type == pygame.KEYDOWN:
-                    # if that key is the return key
-                    if event.key == pygame.K_RETURN:
-                        self.START_KEY = True
-                        self.playing = False
-
-                self.display.fill(self.WHITE)
-                # tuple to get mouse position
+                # 1. ####### GAME SETUP #######
+                self.reset_canvas()
                 x, y = pygame.mouse.get_pos()
 
-                # update each character's image based on mouse click / mouse motion
+                # checks if player wants to quit game
+                if event.type == pygame.QUIT:
+                    self.quit_game()
+
+                # switches between splash and game screen
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        self.change_screens()
+
+                # 2. ####### PLAY MODE SELECTION #######
+                # checks if user selects individual blob or entire choir
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for blob in self.blobList:
-                        blob.set_selected(x, y)
+                        blob.set_selected_blob(x, y)
+                        # Single Selection Mode
+                        if blob.IS_SELECTED:
+                            self.status = 'single'
+                            for channel in range(0, 50):
+                                pygame.mixer.Channel(channel).stop()
+                        # Multi Selection Mode
+                        if blob.ALL_SELECTED:
+                            self.status = 'all'
+                            for channel in range(0, 50):
+                                pygame.mixer.Channel(channel).stop()
 
+                # updates each blob's pitch, wav file based on mouse position
                 if event.type == pygame.MOUSEMOTION:
-                    for blob in self.blobList:
-                        # update the animation frame
-                        blob.set_character_image(chordList, pitchList, x, y, self.blobList.index(blob))
+                    for i, blob in enumerate(self.blobList):
+                        self.wavList = []
+                        blob.set_character_iage(x, y, i)
+                        blob.set_wav()
+                        self.wavList.append(blob.get_wav())
 
-                # draw all the characters to the screen
+
+                # 3. ####### ANIMATION #######
+                # draws blobs to display
                 for blob in self.blobList:
                     blob.draw(self.display)
 
@@ -93,34 +98,80 @@ class Game:
                 self.window.blit(self.display, (0, 0))
                 pygame.display.update()
 
-            # resets key to false for next frame
+            # resets START_KEY to false (you're on game screen) for next frame
             self.reset_key()
 
+            # 4. ####### PITCH CHANGES AND MUSIC PLAYING #######
+            if self.status == 'all':
+                if self.curr_chord == self.blobList[0].chord:
+                    self.curr_volume = self.blobList[0].volume
+
+                    for channel in range(0, 50):
+                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                    continue
+                else:
+                    if self.wavList:
+                        for i, x in enumerate(self.wavList):
+                            pygame.mixer.Channel(i + 1).play(x, -1)
+                            self.curr_volume = self.blobList[0].volume
+
+                            for channel in range(0, 50):
+                                pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                            self.curr_chord = blob.chord
+
+            elif self.status == 'single':
+
+                for blob in self.blobList:
+                    if blob.IS_SELECTED:
+                        if self.curr_pitch == blob.pitch:
+                            pygame.mixer.Channel(1).set_volume(blob.volume)
+                            continue
+                        else:
+                            for channel in range(0, 50):
+                                pygame.mixer.Channel(channel).stop()
+                            blob.set_wav()
+                            pygame.mixer.Channel(1).play(blob.wav)
+                            pygame.mixer.Channel(1).set_volume(blob.volume)
+                            self.curr_pitch = blob.pitch
+
+                        # if self.curr_volume == blob.volume:
+                        #     continue
+                        # else:
+                        #     # change the volume of only the selected blob
+                        #     self.curr_volume = blob.volume
+
+
+
+
+            # 5. ####### VOLUME CHANGES #######
+            # if(mode == all):
+                # change volume to current y value for all channels
+            #
+            #else:
+                # find the current selected blob
+                # find the channel of current selected blob
+                # change volume for  value for that channel
+
     def check_events(self):
-        # goes thru list of everything player can do on computer
-        # if player clicks x on window
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                # stop game from running
-                self.running = False
-                # stop game loop
-                self.playing = False
-                # stop display of main menu
+                self.RUNNING = False
+                self.PLAYING = False
                 self.curr_menu.run_display = False
-
-            # if any keyboard item has been pressed
             if event.type == pygame.KEYDOWN:
-                # if that key is the return key
                 if event.key == pygame.K_RETURN:
                     self.START_KEY = True
+    def reset_canvas(self):
+        # redraw fresh canvas
+        self.display.fill(self.WHITE)
 
     def reset_key(self):
         self.START_KEY = False
 
-    # self is a reference to the game object
-    def draw_text(self, text, size, x, y, color):
-        font = pygame.font.Font(self.font_name, size)
-        text_surface = font.render(text, True, color)
-        text_rect = text_surface.get_rect()
-        text_rect.center = (x, y)
-        self.display.blit(text_surface, text_rect)
+    def quit_game(self):
+        self.RUNNING = False
+        self.PLAYING = False
+
+    def change_screens(self):
+        self.START_KEY = True
+        self.PLAYING = False
