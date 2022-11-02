@@ -39,8 +39,8 @@ class MainMenu(Menu):
 
     def check_input(self):
         #if return key is pressed
-        if self.game.START_KEY:
-            #stop displaying display menu
-            #start displaying game!
-            self.game.PLAYING = True
+        if self.game.start:
+            #stop displaying display screen
+            #start displaying game screen
+            self.game.playing = True
             self.run_display = False

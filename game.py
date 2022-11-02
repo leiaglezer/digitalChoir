@@ -6,161 +6,169 @@ from player import Player
 
 class Game:
     def __init__(self):
-        self.wavListName = None
-        self.curr_pitch = None
-        self.status = 'all'
-        self.event = None
-        self.curr_volume = None
-
+        ######## APPLICATION SETUP ATTRIBUTES ##########
+        #turn game on
         pygame.init()
-        # self.running will be true when game is on
-        self.RUNNING = True
-        # self.playing will be true when game is being played
-        self.PLAYING = False
-        # flag to switch between splash & game screen
-        self.START_KEY = False
         # background image
         self.background = pygame.image.load('splash.png')
         # canvas size
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
+
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
-        self.BLACK, self.WHITE = (13, 11, 11), (117, 73, 34)
-        self.BLUE, self.PINK = (97, 113, 255), (207, 29, 207)
-        self.GREEN, self.DARK_RED = (48, 181, 4), (84, 0, 0)
+        self.BLACK, self.WHITE = (13, 11, 11), (255, 255, 255)
+
+        ######## MENU SETUP ATTRIBUTES ##########
         # menu to start on
         self.curr_menu = MainMenu(self)
-        # instantiate three blobs
-        self.blobList = [Player(), Player(), Player()]
+        # self.running will be true when game is on
+        self.running = True
+        # self.playing will be true when game is being played
+        self.playing = False
+        # flag to switch between splash & game screen
+        self.start = False
+
+        ######## MUSIC PLAYING ATTRIBUTES ##########
+        self.curr_pitch = None
+        self.curr_status = 'Multi Mode'
+        self.curr_volume = None
         self.curr_chord = None
 
+        ######## MUSIC SETUP ##########
         # setup music player
         mixer.init()
         pygame.mixer.set_num_channels(50)
-        self.wavList = []
+        self.wav_list = []
 
+        ######## INITIAL CHARACTER SETUP ##########
+        # instantiate three chars
+        self.char_list = [Player(), Player(), Player()]
         # set initial image/location
-        for blob in self.blobList:
-            blob.set_current_image(self.blobList.index(blob) * 3)
-            blob.set_location(self.blobList.index(blob))
-
+        for char in self.char_list:
+            char.set_frame()
+            char.set_location(self.char_list.index(char))
     def game_loop(self):
         # only plays when player is IN game
-        while self.PLAYING:
+        while self.playing:
             for event in pygame.event.get():
+
                 # 1. ####### GAME SETUP #######
-                self.reset_canvas()
+                # reset background so you get a white screen
+                self.display.blit(pygame.image.load('splash.png'), (0, 0))
+
+                #get fresh mouse coordinates
                 x, y = pygame.mouse.get_pos()
 
                 # checks if player wants to quit game
                 if event.type == pygame.QUIT:
                     self.quit_game()
 
-                # switches between splash and game screen
+                #checks if we need to switch between splash and game screen
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         self.change_screens()
 
-                # 2. ####### PLAY MODE SELECTION #######
-                # checks if user selects individual blob or entire choir
+                # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    for blob in self.blobList:
-                        blob.set_selected_blob(x, y)
+                    # checks if user selects individual char or entire choir
+                    for char in self.char_list:
+                        char.set_selected_blob(x, y)
                         # Single Selection Mode
-                        if blob.IS_SELECTED:
-                            self.status = 'single'
-
+                        if char.IS_SELECTED:
+                            self.curr_status = 'Solo Mode'
                         # Multi Selection Mode
-                        if blob.ALL_SELECTED:
-                            self.status = 'all'
+                        if char.ALL_SELECTED:
+                            self.curr_status = 'Multi Mode'
 
-                        for channel in range(0, 50):
-                            pygame.mixer.Channel(channel).stop()
+                    # Stop current music, so that correct music starts playing for single/multimode.
+                    for channel in range(0, 50):
+                        pygame.mixer.Channel(channel).stop()
 
-                # clear wav list
-                self.wavList = []
-                self.wavListName = []
-                # updates each blob's pitch, wav file based on mouse position
+                # 3. ####### NEW MOUSEMOTION: CHORD OR NOTE SELECTION #######
+                # clear old wav list, so correct wavs are loaded each loop
+                self.reset_wav_list()
+
                 if event.type == pygame.MOUSEMOTION:
+                    for i, char in enumerate(self.char_list):
+                        char.set_pitch(x, i)
+                        char.set_volume(y)
+                        char.set_frame()
+                        char.set_wav()
+                        self.wav_list.append(char.get_wav())
 
-                    for i, blob in enumerate(self.blobList):
-                        blob.set_character_image(x, y, i)
-                        blob.set_wav()
-                        self.wavList.append(blob.get_wav())
-                        self.wavListName.append(blob.wavName)
-
-                    print(self.wavListName)
-
-
-                # 3. ####### ANIMATION #######
-                # draws blobs to display
-                for blob in self.blobList:
-                    blob.draw(self.display)
-
-                # draws the display to the window, shows to user
+                # 4. ####### ANIMATION #######
+                # draws chars to display
+                for char in self.char_list:
+                    char.draw(self.display)
                 self.window.blit(self.display, (0, 0))
                 pygame.display.update()
 
-            # resets START_KEY to false (you're on game screen) for next frame
+            # 5. ####### RESET START KEY #######
             self.reset_key()
 
-            # 4. ####### PITCH CHANGES AND MUSIC PLAYING #######
-            if self.status == 'all':
-
-                if self.curr_chord == self.blobList[0].chord:
-                    self.curr_volume = self.blobList[0].volume
+            # 6. ####### PITCH, VOLUME CHANGES & MUSIC PLAYING #######
+            if self.curr_status == 'Multi Mode':
+                # if the mouse motion is within the x bound of the current chord
+                if self.curr_chord == self.char_list[0].get_chord():
+                    # check and potentially change the global volume variable
+                    self.curr_volume = self.char_list[0].get_volume()
+                    # set the volume for all channels
                     for channel in range(0, 50):
                         pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                    # continue playing the current chord
                     continue
+
+                # the mouse has moved to the x bound of a new chord
                 else:
-                    if self.wavList:
-                        for i, x in enumerate(self.wavList):
-                            pygame.mixer.Channel(i + 1).play(x, -1)
-                            self.curr_volume = self.blobList[0].volume
+                    for i, x in enumerate(self.wav_list):
+                        # play the new chord
+                        pygame.mixer.Channel(i + 1).play(x, -1)
+                        # update the global volume variable
+                        self.curr_volume = self.char_list[0].get_volume()
+                        # play the global current chord variable
 
-                            for channel in range(0, 50):
-                                pygame.mixer.Channel(channel).set_volume(self.curr_volume)
-                            self.curr_chord = blob.chord
+                        for channel in range(0, 50):
+                            pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                        # update the global current chord variable
+                        self.curr_chord = char.get_chord()
 
-
-            elif self.status == 'single':
-
-                for blob in self.blobList:
-                    if blob.IS_SELECTED:
-                        if self.curr_pitch == blob.pitch:
-                            pygame.mixer.Channel(1).set_volume(blob.volume)
+            if self.curr_status == 'Solo Mode':
+                # go through char list
+                for char in self.char_list:
+                    # find the selected char
+                    if char.IS_SELECTED:
+                        if self.curr_pitch == char.get_pitch():
+                            # set the char's volume in a single channel
+                            pygame.mixer.Channel(1).set_volume(char.get_volume())
                             continue
                         else:
-                            for channel in range(0, 50):
-                                pygame.mixer.Channel(channel).stop()
-                            blob.set_wav()
-                            pygame.mixer.Channel(1).play(blob.wav)
-                            pygame.mixer.Channel(1).set_volume(blob.volume)
-                            self.curr_pitch = blob.pitch
-
-
+                            pygame.mixer.Channel(1).play(char.get_wav())
+                            pygame.mixer.Channel(1).set_volume(char.get_volume())
+                            self.curr_pitch = char.get_pitch()
+    def reset_wav_list(self):
+        self.wav_list = []
     def check_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.RUNNING = False
-                self.PLAYING = False
+                self.running = False
+                self.playing = False
                 self.curr_menu.run_display = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    self.START_KEY = True
+                    self.start = True
     def reset_canvas(self):
         # redraw fresh canvas
         self.display.fill(self.WHITE)
 
     def reset_key(self):
-        self.START_KEY = False
+        self.start = False
 
     def quit_game(self):
-        self.RUNNING = False
-        self.PLAYING = False
+        self.running = False
+        self.playing = False
 
     def change_screens(self):
-        self.START_KEY = True
-        self.PLAYING = False
+        self.start = True
+        self.playing = False
