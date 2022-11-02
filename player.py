@@ -21,6 +21,7 @@ chordList = [[2, 4, 3], [3, 5, 0], [4, 6, 1], [5, 0, 2], [6, 1, 3], [0, 2, 4], [
 pitchList = [0, 1, 2, 3, 4, 5, 6]
 class Player:
     def __init__(self):
+        self.wavName = None
         self.note_frames = self.load_frames()
         self.rect = self.note_frames[0].get_rect()
         self.x = self.rect.x
@@ -51,18 +52,25 @@ class Player:
     def set_wav(self):
         if self.pitch == 0:
             self.wav = pygame.mixer.Sound('A3.wav')
+            self.wavName = 'A3'
         elif self.pitch == 1:
             self.wav = pygame.mixer.Sound('B3.wav')
+            self.wavName = 'B3'
         elif self.pitch == 2:
             self.wav = pygame.mixer.Sound('C3.wav')
+            self.wavName = 'C3'
         elif self.pitch == 3:
             self.wav = pygame.mixer.Sound('D3.wav')
+            self.wavName = 'D3'
         elif self.pitch == 4:
             self.wav = pygame.mixer.Sound('E3.wav')
+            self.wavName = 'E3'
         elif self.pitch == 5:
             self.wav = pygame.mixer.Sound('F3.wav')
+            self.wavName = 'F3'
         elif self.pitch == 6:
             self.wav = pygame.mixer.Sound('G3.wav')
+            self.wavName = 'G3'
         else:
             self.wav = None
 
@@ -86,7 +94,7 @@ class Player:
             self.ALL_SELECTED = False
             return None
 
-    def set_character_iage(self, x, y, i):
+    def set_character_image(self, x, y, i):
         #if all blobs selected
         if self.ALL_SELECTED:
             #update chord based on x position

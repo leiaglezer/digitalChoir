@@ -1,5 +1,3 @@
-import time
-
 import pygame
 from pygame import mixer
 from menu import MainMenu
@@ -8,6 +6,7 @@ from player import Player
 
 class Game:
     def __init__(self):
+        self.wavListName = None
         self.curr_pitch = None
         self.status = 'all'
         self.event = None
@@ -72,21 +71,27 @@ class Game:
                         # Single Selection Mode
                         if blob.IS_SELECTED:
                             self.status = 'single'
-                            for channel in range(0, 50):
-                                pygame.mixer.Channel(channel).stop()
+
                         # Multi Selection Mode
                         if blob.ALL_SELECTED:
                             self.status = 'all'
-                            for channel in range(0, 50):
-                                pygame.mixer.Channel(channel).stop()
 
+                        for channel in range(0, 50):
+                            pygame.mixer.Channel(channel).stop()
+
+                # clear wav list
+                self.wavList = []
+                self.wavListName = []
                 # updates each blob's pitch, wav file based on mouse position
                 if event.type == pygame.MOUSEMOTION:
+
                     for i, blob in enumerate(self.blobList):
-                        self.wavList = []
-                        blob.set_character_iage(x, y, i)
+                        blob.set_character_image(x, y, i)
                         blob.set_wav()
                         self.wavList.append(blob.get_wav())
+                        self.wavListName.append(blob.wavName)
+
+                    print(self.wavListName)
 
 
                 # 3. ####### ANIMATION #######
@@ -103,9 +108,9 @@ class Game:
 
             # 4. ####### PITCH CHANGES AND MUSIC PLAYING #######
             if self.status == 'all':
+
                 if self.curr_chord == self.blobList[0].chord:
                     self.curr_volume = self.blobList[0].volume
-
                     for channel in range(0, 50):
                         pygame.mixer.Channel(channel).set_volume(self.curr_volume)
                     continue
@@ -118,6 +123,7 @@ class Game:
                             for channel in range(0, 50):
                                 pygame.mixer.Channel(channel).set_volume(self.curr_volume)
                             self.curr_chord = blob.chord
+
 
             elif self.status == 'single':
 
@@ -134,23 +140,6 @@ class Game:
                             pygame.mixer.Channel(1).set_volume(blob.volume)
                             self.curr_pitch = blob.pitch
 
-                        # if self.curr_volume == blob.volume:
-                        #     continue
-                        # else:
-                        #     # change the volume of only the selected blob
-                        #     self.curr_volume = blob.volume
-
-
-
-
-            # 5. ####### VOLUME CHANGES #######
-            # if(mode == all):
-                # change volume to current y value for all channels
-            #
-            #else:
-                # find the current selected blob
-                # find the channel of current selected blob
-                # change volume for  value for that channel
 
     def check_events(self):
         for event in pygame.event.get():
