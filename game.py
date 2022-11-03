@@ -133,6 +133,8 @@ class Game:
                 # if the mouse motion is within the x bound of the current chord
                 if self.curr_chord == self.char_list[0].get_chord():
                     self.curr_volume = self.char_list[0].get_volume()
+                    for channel in range(0, 50):
+                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
                     continue
 
                 # the mouse has moved to the x bound of a new chord
@@ -141,8 +143,8 @@ class Game:
                     self.curr_volume = self.char_list[0].get_volume()
                     self.curr_chord = self.char_list[0].get_chord()
 
-                for channel in range(0, 50):
-                    pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                    for channel in range(0, 50):
+                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
 
             if self.curr_status == 'Solo Mode':
                 # go through char list

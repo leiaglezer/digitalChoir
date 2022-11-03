@@ -51,23 +51,6 @@ class Player:
         self.x = frame * 200 + 50
         self.y = 100
 
-    def set_wav(self):
-        if self.pitch == 0:
-            self.wav = pygame.mixer.Sound('timbre1A.wav')
-        elif self.pitch == 1:
-            self.wav = pygame.mixer.Sound('timbre1B.wav')
-        elif self.pitch == 2:
-            self.wav = pygame.mixer.Sound('C3.wav')
-        elif self.pitch == 3:
-            self.wav = pygame.mixer.Sound('timbre1D.wav')
-        elif self.pitch == 4:
-            self.wav = pygame.mixer.Sound('timbre1E.wav')
-        elif self.pitch == 5:
-            self.wav = pygame.mixer.Sound('timbre1F.wav')
-        elif self.pitch == 6:
-            self.wav = pygame.mixer.Sound('timbre1G.wav')
-        else:
-            self.wav = None
 
     def get_wav(self):
         return self.wav
