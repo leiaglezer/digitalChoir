@@ -3,32 +3,11 @@ from pygame import mixer
 from menu import MainMenu
 from player import Player
 
-
-notes = {
-    0: {"timbre1": "timbre1A.wav"},
-    1: {"timbre1": "timbre1B.wav"},
-    2: {"timbre1": "timbre1C.wav"},
-    3: {"timbre1": "timbre1D.wav"},
-    4: {"timbre1": "timbre1E.wav"},
-    5: {"timbre1": "timbre1F.wav"},
-    6: {"timbre1": "timbre1G.wav"},
-}
-
-chords = {
-    "Cmaj": [2, 4, 6],
-    "Dmin": [3, 5, 0],
-    "Emin": [4, 6, 1],
-    "Fmaj": [5, 0, 2],
-    "Gmaj": [6, 1, 3],
-    "Amin": [0, 2, 4],
-    "Bdim": [1, 3, 5]
-}
-
-
 class Game:
     def __init__(self):
         ######## APPLICATION SETUP ATTRIBUTES ##########
         #turn game on
+        self.curr_char = None
         pygame.init()
         # background image
         self.background = pygame.image.load('splash.png')
@@ -55,14 +34,33 @@ class Game:
         self.curr_pitch = None
         self.curr_status = 'Multi Mode'
         self.curr_volume = None
-        self.curr_chord = "Cmaj"
+        self.curr_chord = None
         self.timbre = "timbre1"
 
         ######## MUSIC SETUP ##########
         # setup music player
         mixer.init()
         pygame.mixer.set_num_channels(50)
-        self.wav_list = []
+
+        self.notes = {
+            0: {"timbre1": "timbre1A.wav"},
+            1: {"timbre1": "timbre1B.wav"},
+            2: {"timbre1": "timbre1C.wav"},
+            3: {"timbre1": "timbre1D.wav"},
+            4: {"timbre1": "timbre1E.wav"},
+            5: {"timbre1": "timbre1F.wav"},
+            6: {"timbre1": "timbre1G.wav"},
+        }
+
+        self.chords = {
+            "Cmaj": [2, 4, 6],
+            "Dmin": [3, 5, 0],
+            "Emin": [4, 6, 1],
+            "Fmaj": [5, 0, 2],
+            "Gmaj": [6, 1, 3],
+            "Amin": [0, 2, 4],
+            "Bdim": [1, 3, 5]
+        }
 
         ######## INITIAL CHARACTER SETUP ##########
         # instantiate three chars
@@ -97,10 +95,9 @@ class Game:
                     # checks if user selects individual char or entire choir
                     for char in self.char_list:
                         char.set_selected_blob(x, y)
-                        # Single Selection Mode
                         if char.IS_SELECTED:
                             self.curr_status = 'Solo Mode'
-                        # Multi Selection Mode
+                            self.curr_char = char
                         if char.ALL_SELECTED:
                             self.curr_status = 'Multi Mode'
 
@@ -109,14 +106,15 @@ class Game:
                         pygame.mixer.Channel(channel).stop()
 
                 # 3. ####### NEW MOUSEMOTION: CHORD OR NOTE SELECTION #######
-                # clear old wav list, so correct wavs are loaded each loop
-                self.reset_wav_list()
-
                 if event.type == pygame.MOUSEMOTION:
                     for i, char in enumerate(self.char_list):
-                        char.set_pitch(x, i)
+                        #frame stuff
+                        char.set_note_and_chord(x, i)
                         char.set_volume(y)
                         char.set_frame()
+
+
+
 
                 # 4. ####### ANIMATION #######
                 # draws chars to display
@@ -130,52 +128,48 @@ class Game:
 
             # 6. ####### MUSIC PLAYING #######
             if self.curr_status == 'Multi Mode':
-                # if the mouse motion is within the x bound of the current chord
+                # If the mouse motion is within the x bound of the current chord, don't restart the audio, just keep playing.
                 if self.curr_chord == self.char_list[0].get_chord():
                     self.curr_volume = self.char_list[0].get_volume()
-                    for channel in range(0, 50):
-                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                    self.set_volume()
                     continue
 
-                # the mouse has moved to the x bound of a new chord
+                # the mouse has moved to the x bound of a new chord, play new chord.
                 else:
                     self.play_chord(self.curr_chord)
                     self.curr_volume = self.char_list[0].get_volume()
                     self.curr_chord = self.char_list[0].get_chord()
+                    self.set_volume()
 
-                    for channel in range(0, 50):
-                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+            # same logic as above, but for notes in "Single Mode"
+            else:
+                if self.curr_pitch == self.curr_char.get_pitch():
+                    self.set_volume()
+                    continue
+                else:
+                    self.play_note(self.curr_char.get_pitch())
+                    self.curr_pitch = self.curr_char.get_pitch()
+                    self.set_volume()
 
-            if self.curr_status == 'Solo Mode':
-                # go through char list
-                for char in self.char_list:
-                    # find the selected char
-                    if char.IS_SELECTED:
-                        if self.curr_pitch == char.get_pitch():
-                            # set the char's volume in a single channel
-                            pygame.mixer.Channel(1).set_volume(char.get_volume())
-                            continue
-                        else:
-                            self.play_note(char.get_pitch())
-                            pygame.mixer.Channel(1).set_volume(char.get_volume())
-                            self.curr_pitch = char.get_pitch()
 
+    def set_volume(self):
+        if self.curr_status == 'Multi Mode':
+            for channel in range(0, 50):
+                pygame.mixer.Channel(channel).set_volume(self.curr_volume/2.0)
+        else:
+            pygame.mixer.Channel(1).set_volume(self.curr_volume/2.0)
 
     def play_chord(self, chord):
         if chord is not None:
-            for i, note in enumerate(chords[chord]):
-                #print(chords[chord])
-                print(note)
+            for i, note in enumerate(self.chords[chord]):
                 self.play_note(note, i)
 
     def play_note(self, note, channel=1):
-        file = notes[note][self.timbre]
+        file = self.notes[note][self.timbre]
         print(file)
         sound = pygame.mixer.Sound(file)
         pygame.mixer.Channel(channel).play(sound)
 
-    def reset_wav_list(self):
-        self.wav_list = []
     def check_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

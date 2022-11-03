@@ -1,6 +1,7 @@
 import pygame
 from spritesheet import Spritesheet
 
+#C Major scale
 # chordList: [[C,E,D], [D,F,A], [E,G,B], [F,A,C], [G,B,D], [A,C,E], [B,D,F]]
 # pitch/note encoding: A=0, B=1, C=2, D=3, E=4, F=5, G=6
 # chord progression we'll use:
@@ -12,7 +13,6 @@ from spritesheet import Spritesheet
 # A minor: A – C – E
 # B diminished: B – D – F
 
-# we'll use one scale, C Major for now, but eventually this will be in its own class w a switch statement based on a button/slider input.
 chord_list = [[2, 4, 3], [3, 5, 0], [4, 6, 1], [5, 0, 2], [6, 1, 3], [0, 2, 4], [1, 3, 5]]
 pitch_list = [0, 1, 2, 3, 4, 5, 6]
 
@@ -32,9 +32,8 @@ class Player:
 
         # sets initial
         self.volume = 0
-        self.pitch = 0
-        self.chord = "Cmaj"
-        self.wav = None
+        self.note = 0
+        self.chord = None
 
         # flag for one char selected
         self.IS_SELECTED = False
@@ -43,26 +42,6 @@ class Player:
 
         # animation frame
         self.frame = self.frame_list[0]
-
-        # will use state to create animations later
-        self.state = 'idle'
-
-    def set_location(self, frame):
-        self.x = frame * 200 + 50
-        self.y = 100
-
-
-    def get_wav(self):
-        return self.wav
-
-    def get_pitch(self):
-        return self.pitch
-
-    def get_chord(self):
-        return self.chord
-
-    def get_volume(self):
-        return self.volume
 
     # determines if one or all blobs are selected
     def set_selected_blob(self, mouseX, mouseY):
@@ -81,50 +60,49 @@ class Player:
             self.ALL_SELECTED = False
             return None
 
-    def set_pitch(self, x, i):
+    def set_note_and_chord(self, x, i):
         # if one char selected
         if self.ALL_SELECTED:
             # update chord based on x position
             if x < 100:
-                self.pitch = chord_list[0][i]
+                self.note = chord_list[0][i]
                 self.chord = "Cmaj"
             elif (x > 100) & (x < 200):
-                self.pitch = chord_list[1][i]
+                self.note = chord_list[1][i]
                 self.chord = "Dmin"
             elif (x > 200) & (x < 300):
-                self.pitch = chord_list[2][i]
+                self.note = chord_list[2][i]
                 self.chord = "Emin"
             elif (x > 300) & (x < 400):
-                self.pitch = chord_list[3][i]
+                self.note = chord_list[3][i]
                 self.chord = "Fmaj"
             elif (x > 400) & (x < 500):
-                self.pitch = chord_list[4][i]
+                self.note = chord_list[4][i]
                 self.chord = "Gmaj"
             elif (x > 500) & (x < 600):
-                self.pitch = chord_list[5][i]
+                self.note = chord_list[5][i]
                 self.chord = "Amin"
-            elif x > 600:
-                self.pitch = chord_list[6][i]
+            elif (x > 600) & (x < 700):
+                self.note = chord_list[6][i]
                 self.chord = "Bdim"
 
         # if one char is selected
         elif self.IS_SELECTED:
             # pitch update
             if x < 100:
-                self.pitch = pitch_list[0]
+                self.note = pitch_list[0]
             elif (x > 100) & (x < 200):
-                self.pitch = pitch_list[1]
+                self.note = pitch_list[1]
             elif (x > 200) & (x < 300):
-                self.pitch = pitch_list[2]
+                self.note = pitch_list[2]
             elif (x > 300) & (x < 400):
-                self.pitch = pitch_list[3]
+                self.note = pitch_list[3]
             elif (x > 400) & (x < 500):
-                self.pitch = pitch_list[4]
+                self.note = pitch_list[4]
             elif (x > 500) & (x < 600):
-                self.pitch = pitch_list[5]
+                self.note = pitch_list[5]
             elif x > 600:
-                self.pitch = pitch_list[6]
-
+                self.note = pitch_list[6]
     def set_volume(self, y):
         if self.ALL_SELECTED or self.IS_SELECTED:
             # volume update
@@ -136,40 +114,51 @@ class Player:
                 self.volume = 2
         else:
             self.volume = 0
-
     def set_frame(self):
         # keeps closed mouth animation
         if self.volume == 0:
-            self.frame = self.frame_list[3 * self.pitch]
+            self.frame = self.frame_list[3 * self.note]
         else:
-            self.frame = self.frame_list[3 * self.pitch + self.volume]
+            self.frame = self.frame_list[3 * self.note + self.volume]
+    def set_location(self, frame):
+        self.x = frame * 150 + 165
+        self.y = 150
+
+    def get_pitch(self):
+        return self.note
+
+    def get_chord(self):
+        return self.chord
+
+    def get_volume(self):
+        return self.volume
 
     def draw(self, display):
         display.blit(self.frame, (self.x, self.y))
 
     def load_frames(self):
-        my_spritesheet = Spritesheet('choir.png')
+        my_spritesheet = Spritesheet('image.png')
 
-        self.frame_list = [my_spritesheet.parse_sprite("A0.png"),
-                           my_spritesheet.parse_sprite("A1.png"),
-                           my_spritesheet.parse_sprite("A2.png"),
-                           my_spritesheet.parse_sprite("B0.png"),
-                           my_spritesheet.parse_sprite("B1.png"),
-                           my_spritesheet.parse_sprite("B2.png"),
-                           my_spritesheet.parse_sprite("C0.png"),
-                           my_spritesheet.parse_sprite("C1.png"),
-                           my_spritesheet.parse_sprite("C2.png"),
-                           my_spritesheet.parse_sprite("D0.png"),
-                           my_spritesheet.parse_sprite("D1.png"),
-                           my_spritesheet.parse_sprite("D2.png"),
-                           my_spritesheet.parse_sprite("E0.png"),
-                           my_spritesheet.parse_sprite("E1.png"),
-                           my_spritesheet.parse_sprite("E2.png"),
-                           my_spritesheet.parse_sprite("F0.png"),
-                           my_spritesheet.parse_sprite("F1.png"),
-                           my_spritesheet.parse_sprite("F2.png"),
-                           my_spritesheet.parse_sprite("G0.png"),
-                           my_spritesheet.parse_sprite("G1.png"),
-                           my_spritesheet.parse_sprite("G2.png")]
+        self.frame_list = [my_spritesheet.parse_sprite("image0.png"),
+                           my_spritesheet.parse_sprite("image1.png"),
+                           my_spritesheet.parse_sprite("image2.png"),
+                           my_spritesheet.parse_sprite("image3.png"),
+                           my_spritesheet.parse_sprite("image4.png"),
+                           my_spritesheet.parse_sprite("image5.png"),
+                           my_spritesheet.parse_sprite("image6.png"),
+                           my_spritesheet.parse_sprite("image7.png"),
+                           my_spritesheet.parse_sprite("image8.png"),
+                           my_spritesheet.parse_sprite("image9.png"),
+                           my_spritesheet.parse_sprite("image10.png"),
+                           my_spritesheet.parse_sprite("image11.png"),
+                           my_spritesheet.parse_sprite("image12.png"),
+                           my_spritesheet.parse_sprite("image13.png"),
+                           my_spritesheet.parse_sprite("image14.png"),
+                           my_spritesheet.parse_sprite("image15.png"),
+                           my_spritesheet.parse_sprite("image16.png"),
+                           my_spritesheet.parse_sprite("image17.png"),
+                           my_spritesheet.parse_sprite("image18.png"),
+                           my_spritesheet.parse_sprite("image19.png"),
+                           my_spritesheet.parse_sprite("image20.png")]
 
         return self.frame_list
