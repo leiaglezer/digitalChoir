@@ -1,11 +1,25 @@
 import sys
 import pygame
+import threading
 from game import Game
+from ApplicationBLE import RightHand
 
-#everything in init in game will run when this runs.
-#creates game object
-g = Game()
 
-while g.running:
+if __name__ =="__main__":
+    #everything in init in game will run when this runs.
+    #creates game object
+    
+    rh = RightHand()
+    g = Game(rh)
+
+    print("Opening thread")
+    ble_handler = threading.Thread(target=rh.run)
+    ble_handler.start()
+
     g.curr_menu.display_menu()
-    g.game_loop()
+
+    while g.running:
+        g.game_loop()
+
+    ble_handler.join()
+    print("Threads ended, application closed")

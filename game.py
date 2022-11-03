@@ -19,7 +19,7 @@ pitchList = [0, 1, 2, 3, 4, 5, 6]
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, glove):
         pygame.init()
         # self.running will be true when game is on
         self.running = True
@@ -45,6 +45,9 @@ class Game:
         self.GREEN, self.DARK_RED = (48, 181, 4), (84,0,0)
         self.curr_menu = MainMenu(self)
         self.blobList = [Player(), Player(), Player()]
+
+        # Gloves
+        self.glove = glove
 
         # set initial image/location
         for blob in self.blobList:

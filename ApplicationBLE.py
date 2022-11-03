@@ -3,18 +3,17 @@ import asyncio
 import platform
 from datetime import datetime
 from typing import Callable, Any, List
-
-
 from aioconsole import ainput
 from bleak import BleakClient, discover
+import threading
 
 
 root_path = os.environ["HOME"]
 output_file = f"{root_path}/Desktop/data_dump.csv"
 
 selected_device = []
-
-spacer = 0
+loop = None
+IMU = {'Ax': 0, 'Ay': 0}
 
 class DataToFile:
 
@@ -24,17 +23,17 @@ class DataToFile:
         self.path = write_path
 
     def write_to_csv(self, times: List[int], delays: List[datetime], data_values: List[Any]):
+        return
+        # if len(set([len(times), len(delays), len(data_values)])) > 1:
+        #     raise Exception("Not all data lists are the same length.")
 
-        if len(set([len(times), len(delays), len(data_values)])) > 1:
-            raise Exception("Not all data lists are the same length.")
-
-        with open(self.path, "a+") as f:
-            if os.stat(self.path).st_size == 0:
-                print("Created file.")
-                f.write(",".join([str(name) for name in self.column_names]) + ",\n")
-            else:
-                for i in range(len(data_values)):
-                    f.write(f"{times[i]},{delays[i]},{data_values[i]},\n")
+        # with open(self.path, "a+") as f:
+        #     if os.stat(self.path).st_size == 0:
+        #         print("Created file.")
+        #         f.write(",".join([str(name) for name in self.column_names]) + ",\n")
+        #     else:
+        #         for i in range(len(data_values)):
+        #             f.write(f"{times[i]},{delays[i]},{data_values[i]},\n")
 
 
 class Connection:
@@ -150,7 +149,20 @@ class Connection:
     def notification_handler(self, sender: str, data: Any): ## THIS IS WHERE WE READ THE DATA
         temp = int.from_bytes(data, byteorder="big")
         self.rx_data.append(temp)
-        print(temp)
+        #print(data)
+        
+        header = temp >> 5
+        this_data = temp & 0b00011111
+
+        if header == 0b110:
+            #print("x: " + str(this_data))
+            setData("Ax", this_data)
+        elif header == 0b111:
+            #print("y: " + str(this_data))
+            setData("Ay", this_data)
+            
+
+
         self.record_time_info()
         if len(self.rx_data) >= self.dump_size:
             self.data_dump_handler(self.rx_data, self.rx_timestamps, self.rx_delays)
@@ -177,30 +189,85 @@ async def main():
         await asyncio.sleep(5)
 
 
+#############
+# API Controller
+#############
+
+read_characteristic = "00001143-0000-1000-8000-00805f9b34fb"
+write_characteristic = "00001142-0000-1000-8000-00805f9b34fb"
+
+ble_lock = threading.Lock()
+
+def setData(var, data):
+    if var == "Ax":
+        with ble_lock:
+            IMU['Ax'] = data
+    if var == "Ay":
+        with ble_lock:
+            IMU['Ay'] = data
+
+class RightHand:
+    def __init__(self):
+        print("Right Hand Init")
+        self.x = 0
+        self.y = 0
+        self.isConnected = False
+
+    def run(self):
+        print("RUNNING FROM main.py")
+        #loop = asyncio.get_event_loop()
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        data_to_file = DataToFile(output_file)
+        connection = Connection(
+            loop, read_characteristic, write_characteristic, data_to_file.write_to_csv
+        )
+        try:
+            asyncio.ensure_future(connection.manager())
+            asyncio.ensure_future(user_console_manager(connection))
+            asyncio.ensure_future(main())
+            self.isConnected = True
+            loop.run_forever()
+        except KeyboardInterrupt:
+            print()
+            print("User stopped program.")
+        finally:
+            print("Disconnecting...")
+            loop.run_until_complete(connection.cleanup())
+    
+    def getCoords(self):
+        with ble_lock:
+            self.x = IMU['Ax']
+            self.y = IMU['Ay']
+        return (self.x, self.y)
+
+    def isConnected(self):
+        return self.isConnected
+
 
 #############
 # App Main
 #############
-read_characteristic = "00001143-0000-1000-8000-00805f9b34fb"
-write_characteristic = "00001142-0000-1000-8000-00805f9b34fb"
+# if __name__ == "__main__":
+#     print("RUNNING DIRECTLY FROM FILE")
 
-if __name__ == "__main__":
+#     # Create the event loop.
+#     loop = asyncio.get_event_loop()
 
-    # Create the event loop.
-    loop = asyncio.get_event_loop()
-
-    data_to_file = DataToFile(output_file)
-    connection = Connection(
-        loop, read_characteristic, write_characteristic, data_to_file.write_to_csv
-    )
-    try:
-        asyncio.ensure_future(connection.manager())
-        asyncio.ensure_future(user_console_manager(connection))
-        asyncio.ensure_future(main())
-        loop.run_forever()
-    except KeyboardInterrupt:
-        print()
-        print("User stopped program.")
-    finally:
-        print("Disconnecting...")
-        loop.run_until_complete(connection.cleanup())
+#     data_to_file = DataToFile(output_file)
+#     connection = Connection(
+#         loop, read_characteristic, write_characteristic, data_to_file.write_to_csv
+#     )
+#     try:
+#         asyncio.ensure_future(connection.manager())
+#         asyncio.ensure_future(user_console_manager(connection))
+#         asyncio.ensure_future(main())
+#         loop.run_forever()
+#     except KeyboardInterrupt:
+#         print()
+#         print("User stopped program.")
+#     finally:
+#         print("Disconnecting...")
+#         loop.run_until_complete(connection.cleanup())

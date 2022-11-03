@@ -61,15 +61,17 @@ typedef union {
 void setup() {
 
   // Start serial.
-  Serial.begin(9600);
+  //Serial.begin(9600);
 
   // Ensure serial port is ready.
-  while (!Serial);
+  //while (!Serial);
+  //serialLight();
 
   // Prepare LED pins.
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(LEDR, OUTPUT);
   pinMode(LEDG, OUTPUT);
+  pinMode(LEDB, OUTPUT);
 
   // Configure the data receive callback
   // PDM.onReceive(onPDMdata);
@@ -101,20 +103,20 @@ void setup() {
   BLE.advertise();
   
   // Print out full UUID and MAC address.
-  Serial.println("Peripheral advertising info: ");
-  Serial.print("Name: ");
-  Serial.println(nameOfPeripheral);
-  Serial.print("MAC: ");
-  Serial.println(BLE.address());
-  Serial.print("Service UUID: ");
-  Serial.println(microphoneService.uuid());
-  Serial.print("rxCharacteristic UUID: ");
-  Serial.println(uuidOfRxChar);
-  Serial.print("txCharacteristics UUID: ");
-  Serial.println(uuidOfTxChar);
+  //Serial.println("Peripheral advertising info: ");
+  //Serial.print("Name: ");
+  //Serial.println(nameOfPeripheral);
+  //Serial.print("MAC: ");
+  //Serial.println(BLE.address());
+  //Serial.print("Service UUID: ");
+  //Serial.println(microphoneService.uuid());
+  //Serial.print("rxCharacteristic UUID: ");
+  //Serial.println(uuidOfRxChar);
+  //Serial.print("txCharacteristics UUID: ");
+  //Serial.println(uuidOfTxChar);
 
 
-  Serial.println("Bluetooth device active, waiting for connections...");
+  //Serial.println("Bluetooth device active, waiting for connections...");
 }
 
 
@@ -136,7 +138,6 @@ void loop()
         // print samples to the serial monitor or plotter
         for (int i = 0; i < samplesRead; i++) {
           txChar.writeValue(sampleBuffer[i]);      
-          delay(25);
         }
         // Clear the read count
         samplesRead = 0;
@@ -154,34 +155,34 @@ void loop()
 void startBLE() {
   if (!BLE.begin())
   {
-    Serial.println("starting BLE failed!");
+    //Serial.println("starting BLE failed!");
     while (1);
   }
 }
 
 void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
   // central wrote new value to characteristic, update LED
-  Serial.print("Characteristic event, read: ");
+  //Serial.print("Characteristic event, read: ");
   byte test[256];
   int dataLength = rxChar.readValue(test, 256); // THIS IS WHERE WE GET COMMUNICATION FROM PYTHON
 
-  for(int i = 0; i < dataLength; i++) {
-    Serial.print((char)test[i]);
-  }
-  Serial.println();
-  Serial.print("Value length = ");
-  Serial.println(rxChar.valueLength());
+  //for(int i = 0; i < dataLength; i++) {
+  //  Serial.print((char)test[i]);
+  //}
+  //Serial.println();
+  //Serial.print("Value length = ");
+  //Serial.println(rxChar.valueLength());
 }
 
 void onBLEConnected(BLEDevice central) {
-  Serial.print("Connected event, central: ");
-  Serial.println(central.address());
+  //Serial.print("Connected event, central: ");
+  //Serial.println(central.address());
   connectedLight();
 }
 
 void onBLEDisconnected(BLEDevice central) {
-  Serial.print("Disconnected event, central: ");
-  Serial.println(central.address());
+  //Serial.print("Disconnected event, central: ");
+  //Serial.println(central.address());
   disconnectedLight();
 }
 
@@ -194,7 +195,7 @@ void startPDM() {
   // - one channel (mono mode)
   // - a 16 kHz sample rate
   if (!PDM.begin(1, 16000)) {
-    Serial.println("Failed to start PDM!");
+    //Serial.println("Failed to start PDM!");
     while (1);
   }
 }
@@ -218,12 +219,12 @@ void onPDMdata() {
 void startIMU() {
     // Ensure IMU is ready
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
+    //Serial.println("Failed to initialize IMU!");
     while (1);
   }
-  Serial.print("Accelerometer sample rate = ");
-  Serial.print(IMU.accelerationSampleRate());
-  Serial.println("Hz");
+  //Serial.print("Accelerometer sample rate = ");
+  //Serial.print(IMU.accelerationSampleRate());
+  //Serial.println("Hz");
 }
 
 void onIMUdata() {
@@ -245,22 +246,56 @@ void onIMUdata() {
   // WRITE SAMPLES INTO SAMPLE BUFFER SOMEHOW
   // gyroSample.bytes[0-11]
   // accelSample.bytes[0-11]
-  short sampleBufferBuilder[256];
-  sampleBufferBuilder[0] = '8';
-  sampleBufferBuilder[13] = 'c';
-  for (int i = 0; i < 24; i++) {
-    if (i < 12) {
-      sampleBufferBuilder[i + 1] = gyroSample.bytes[i];
-    } else {
-      sampleBufferBuilder[i + 2] = accelSample.bytes[i - 12];
-    }
+  
+  // uint8_t sampleBufferBuilder[256];
+  // sampleBufferBuilder[0] = '8';
+  // sampleBufferBuilder[13] = 'c';
+  // for (int i = 0; i < 24; i++) {
+  //   if (i < 12) {
+  //     sampleBufferBuilder[i + 1] = gyroSample.bytes[i];
+  //   } else {
+  //     sampleBufferBuilder[i + 2] = accelSample.bytes[i - 12];
+  //   }
+  // }
+
+  if (Ax > 0.1) {
+    Ax = 100 * Ax;
+    degreesX = map(Ax, 0, 97, 0, 90);
+    //Serial.print("Tilting up ");
+    //Serial.print(degreesX);
+    //Serial.println("  degrees");
+  }
+  if (Ax < -0.1) {
+    Ax = 100 * Ax;
+    degreesX = map(Ax, 0, -100, 0, 90);
+    //Serial.print("Tilting down ");
+    //Serial.print(degreesX);
+    //Serial.println("  degrees");
+  }
+  if (Ay > 0.1) {
+    Ay = 100 * Ay;
+    degreesY = map(Ay, 0, 97, 0, 90);
+    //Serial.print("Tilting left ");
+    //Serial.print(degreesY);
+    //Serial.println("  degrees");
+  }
+  if (Ay < -0.1) {
+    Ay = 100 * Ay;
+    degreesY = map(Ay, 0, -100, 0, 90);
+    //Serial.print("Tilting right ");
+    //Serial.print(degreesY);
+    //Serial.println("  degrees");
   }
 
-  Serial.println("G: " + String(Gx) + " " + String(Gy) + " " + String(Gz));
-  Serial.println("A: " + String(Ax) + " " + String(Ay) + " " + String(Az));
+  // Ay *= 100; Ax *= 100;
+  degreesX = map(Ax, -100, 97, 0, 90);
+  degreesY = map(Ay, -100, 97, 0, 90);
 
-  memcpy(sampleBuffer, sampleBufferBuilder, sizeof(sampleBufferBuilder[0])*256);
-  samplesRead = 26;
+  // [sensorMode][L/R][X/Y][d1][d2][d3][d4][d5]
+  sampleBuffer[0] = (uint8_t) (0b11000000 + map(degreesX, 0, 90, 0, 0b11111));
+  sampleBuffer[1] = (uint8_t) (0b11100000 + map(degreesY, 0, 90, 0, 0b11111));
+
+  samplesRead = 2;
 }
 
 
@@ -270,10 +305,18 @@ void onIMUdata() {
 void connectedLight() {
   digitalWrite(LEDR, LOW);
   digitalWrite(LEDG, HIGH);
+  digitalWrite(LEDB, LOW);
+}
+
+void serialLight() {
+  digitalWrite(LEDR, LOW);
+  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, HIGH);
 }
 
 
 void disconnectedLight() {
   digitalWrite(LEDR, HIGH);
   digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, LOW);
 }
