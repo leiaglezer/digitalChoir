@@ -7,7 +7,7 @@ from pygame import mixer
 mixer.init()
 pygame.mixer.set_num_channels(50)
 
-wavList = [pygame.mixer.Sound('C3.wav'), pygame.mixer.Sound('D3.wav')]
+wavList = [pygame.mixer.Sound('C3.wav'), pygame.mixer.Sound('timbre1D.wav')]
 
 # for i, x in enumerate(wavList):
 #     pygame.mixer.Channel(i + 1).play(x) #full volume
@@ -19,7 +19,7 @@ wavList = [pygame.mixer.Sound('C3.wav'), pygame.mixer.Sound('D3.wav')]
 
 
 pygame.mixer.Channel(1).play(pygame.mixer.Sound('C3.wav')) #full volume
-pygame.mixer.Channel(2).play(pygame.mixer.Sound('D3.wav')) #full volume
+pygame.mixer.Channel(2).play(pygame.mixer.Sound('timbre1D.wav')) #full volume
 time.sleep(5)
 pygame.mixer.Channel(1).set_volume(.5)
 pygame.mixer.Channel(2).set_volume(.5)

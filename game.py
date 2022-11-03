@@ -3,6 +3,22 @@ from pygame import mixer
 from menu import MainMenu
 from player import Player
 
+notes = {
+    0: {"timbre1": "timbre1A.wav"},
+    1: {"timbre1": "timbre1B.wav"},
+    2: {"timbre1": "timbre1C.wav"},
+    3: {"timbre1": "timbre1D.wav"},
+    4: {"timbre1": "timbre1E.wav"},
+    5: {"timbre1": "timbre1F.wav"},
+    6: {"timbre1": "timbre1G.wav"},
+}
+
+chords = {
+    "Amaj": [1,3,5],
+    "Bmin": [2,4,6],
+    "Emin": [3,4,5],
+}
+
 
 class Game:
     def __init__(self):
@@ -34,7 +50,8 @@ class Game:
         self.curr_pitch = None
         self.curr_status = 'Multi Mode'
         self.curr_volume = None
-        self.curr_chord = None
+        self.curr_chord = "Amaj"
+        self.timbre = "timbre1"
 
         ######## MUSIC SETUP ##########
         # setup music player
@@ -56,7 +73,7 @@ class Game:
 
                 # 1. ####### GAME SETUP #######
                 # reset background so you get a white screen
-                self.display.blit(pygame.image.load('splash.png'), (0, 0))
+                self.display.blit(pygame.image.load('main.png'), (0, 0))
 
                 #get fresh mouse coordinates
                 x, y = pygame.mouse.get_pos()
@@ -95,8 +112,6 @@ class Game:
                         char.set_pitch(x, i)
                         char.set_volume(y)
                         char.set_frame()
-                        char.set_wav()
-                        self.wav_list.append(char.get_wav())
 
                 # 4. ####### ANIMATION #######
                 # draws chars to display
@@ -108,7 +123,7 @@ class Game:
             # 5. ####### RESET START KEY #######
             self.reset_key()
 
-            # 6. ####### PITCH, VOLUME CHANGES & MUSIC PLAYING #######
+            # 6. ####### MUSIC PLAYING #######
             if self.curr_status == 'Multi Mode':
                 # if the mouse motion is within the x bound of the current chord
                 if self.curr_chord == self.char_list[0].get_chord():
@@ -122,17 +137,11 @@ class Game:
 
                 # the mouse has moved to the x bound of a new chord
                 else:
-                    for i, x in enumerate(self.wav_list):
-                        # play the new chord
-                        pygame.mixer.Channel(i + 1).play(x, -1)
-                        # update the global volume variable
-                        self.curr_volume = self.char_list[0].get_volume()
-                        # play the global current chord variable
-
-                        for channel in range(0, 50):
-                            pygame.mixer.Channel(channel).set_volume(self.curr_volume)
-                        # update the global current chord variable
-                        self.curr_chord = char.get_chord()
+                    self.play_chord(self.curr_chord)
+                    self.curr_volume = self.char_list[0].get_volume()
+                    for channel in range(0, 50):
+                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+                    self.curr_chord = self.char_list[0].get_chord()
 
             if self.curr_status == 'Solo Mode':
                 # go through char list
@@ -144,9 +153,24 @@ class Game:
                             pygame.mixer.Channel(1).set_volume(char.get_volume())
                             continue
                         else:
-                            pygame.mixer.Channel(1).play(char.get_wav())
+                            self.play_note(char.get_pitch())
                             pygame.mixer.Channel(1).set_volume(char.get_volume())
                             self.curr_pitch = char.get_pitch()
+
+
+    def play_chord(self, chord):
+        if chord is not None:
+            for i, note in enumerate(chords[chord]):
+                #print(chords[chord])
+                print(note)
+                self.play_note(note, i)
+
+    def play_note(self, note, channel=1):
+        file = notes[note][self.timbre]
+        print(file)
+        sound = pygame.mixer.Sound(file)
+        pygame.mixer.Channel(channel).play(sound)
+
     def reset_wav_list(self):
         self.wav_list = []
     def check_events(self):

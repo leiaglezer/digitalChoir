@@ -15,15 +15,14 @@ from spritesheet import Spritesheet
 # we'll use one scale, C Major for now, but eventually this will be in its own class w a switch statement based on a button/slider input.
 chord_list = [[2, 4, 3], [3, 5, 0], [4, 6, 1], [5, 0, 2], [6, 1, 3], [0, 2, 4], [1, 3, 5]]
 pitch_list = [0, 1, 2, 3, 4, 5, 6]
-# chordList = {"a":[2, 4, 3], "b":[3, 5, 0], "c":[4, 6, 1], [5, 0, 2], [6, 1, 3], [0, 2, 4], [1, 3, 5]}
 
 class Player:
     def __init__(self):
 
-        #load frames into array
+        # load frames into array
         self.frame_list = self.load_frames()
 
-        #get x,y of frame bounding box
+        # get x,y of frame bounding box
         self.x = self.frame_list[0].get_rect().x
         self.y = self.frame_list[0].get_rect().y
 
@@ -31,10 +30,10 @@ class Player:
         self.width = self.frame_list[0].get_width()
         self.height = self.frame_list[0].get_height()
 
-        #sets initial
+        # sets initial
         self.volume = 0
         self.pitch = 0
-        self.chord = "A"
+        self.chord = "Amaj"
         self.wav = None
 
         # flag for one char selected
@@ -42,7 +41,7 @@ class Player:
         # flag for all chars selected
         self.ALL_SELECTED = True
 
-        #animation frame
+        # animation frame
         self.frame = self.frame_list[0]
 
         # will use state to create animations later
@@ -54,28 +53,31 @@ class Player:
 
     def set_wav(self):
         if self.pitch == 0:
-            self.wav = pygame.mixer.Sound('A3.wav')
+            self.wav = pygame.mixer.Sound('timbre1A.wav')
         elif self.pitch == 1:
-            self.wav = pygame.mixer.Sound('B3.wav')
+            self.wav = pygame.mixer.Sound('timbre1B.wav')
         elif self.pitch == 2:
             self.wav = pygame.mixer.Sound('C3.wav')
         elif self.pitch == 3:
-            self.wav = pygame.mixer.Sound('D3.wav')
+            self.wav = pygame.mixer.Sound('timbre1D.wav')
         elif self.pitch == 4:
-            self.wav = pygame.mixer.Sound('E3.wav')
+            self.wav = pygame.mixer.Sound('timbre1E.wav')
         elif self.pitch == 5:
-            self.wav = pygame.mixer.Sound('F3.wav')
+            self.wav = pygame.mixer.Sound('timbre1F.wav')
         elif self.pitch == 6:
-            self.wav = pygame.mixer.Sound('G3.wav')
+            self.wav = pygame.mixer.Sound('timbre1G.wav')
         else:
             self.wav = None
 
     def get_wav(self):
         return self.wav
+
     def get_pitch(self):
         return self.pitch
+
     def get_chord(self):
         return self.chord
+
     def get_volume(self):
         return self.volume
 
@@ -102,29 +104,29 @@ class Player:
             # update chord based on x position
             if x < 100:
                 self.pitch = chord_list[0][i]
-                self.chord = "A"
+                self.chord = "Amaj"
             elif (x > 100) & (x < 200):
                 self.pitch = chord_list[1][i]
-                self.chord = "B"
+                self.chord = "Bmin"
             elif (x > 200) & (x < 300):
                 self.pitch = chord_list[2][i]
-                self.chord = "C"
+                self.chord = "Amaj"
             elif (x > 300) & (x < 400):
                 self.pitch = chord_list[3][i]
-                self.chord = "D"
+                self.chord = "Bmin"
             elif (x > 400) & (x < 500):
                 self.pitch = chord_list[4][i]
-                self.chord = "E"
+                self.chord = "Amaj"
             elif (x > 500) & (x < 600):
                 self.pitch = chord_list[5][i]
-                self.chord = "F"
+                self.chord = "Bmin"
             elif x > 600:
                 self.pitch = chord_list[6][i]
-                self.chord = "G"
+                self.chord = "Amaj"
 
         # if one char is selected
         elif self.IS_SELECTED:
-            #pitch update
+            # pitch update
             if x < 100:
                 self.pitch = pitch_list[0]
             elif (x > 100) & (x < 200):
@@ -153,7 +155,7 @@ class Player:
             self.volume = 0
 
     def set_frame(self):
-        #keeps closed mouth animation
+        # keeps closed mouth animation
         if self.volume == 0:
             self.frame = self.frame_list[3 * self.pitch]
         else:
