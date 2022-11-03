@@ -3,6 +3,7 @@ from pygame import mixer
 from menu import MainMenu
 from player import Player
 
+
 notes = {
     0: {"timbre1": "timbre1A.wav"},
     1: {"timbre1": "timbre1B.wav"},
@@ -14,9 +15,13 @@ notes = {
 }
 
 chords = {
-    "Amaj": [1,3,5],
-    "Bmin": [2,4,6],
-    "Emin": [3,4,5],
+    "Cmaj": [2, 4, 6],
+    "Dmin": [3, 5, 0],
+    "Emin": [4, 6, 1],
+    "Fmaj": [5, 0, 2],
+    "Gmaj": [6, 1, 3],
+    "Amin": [0, 2, 4],
+    "Bdim": [1, 3, 5]
 }
 
 
@@ -50,7 +55,7 @@ class Game:
         self.curr_pitch = None
         self.curr_status = 'Multi Mode'
         self.curr_volume = None
-        self.curr_chord = "Amaj"
+        self.curr_chord = "Cmaj"
         self.timbre = "timbre1"
 
         ######## MUSIC SETUP ##########
@@ -127,21 +132,17 @@ class Game:
             if self.curr_status == 'Multi Mode':
                 # if the mouse motion is within the x bound of the current chord
                 if self.curr_chord == self.char_list[0].get_chord():
-                    # check and potentially change the global volume variable
                     self.curr_volume = self.char_list[0].get_volume()
-                    # set the volume for all channels
-                    for channel in range(0, 50):
-                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
-                    # continue playing the current chord
                     continue
 
                 # the mouse has moved to the x bound of a new chord
                 else:
                     self.play_chord(self.curr_chord)
                     self.curr_volume = self.char_list[0].get_volume()
-                    for channel in range(0, 50):
-                        pygame.mixer.Channel(channel).set_volume(self.curr_volume)
                     self.curr_chord = self.char_list[0].get_chord()
+
+                for channel in range(0, 50):
+                    pygame.mixer.Channel(channel).set_volume(self.curr_volume)
 
             if self.curr_status == 'Solo Mode':
                 # go through char list

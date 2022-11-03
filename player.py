@@ -33,7 +33,7 @@ class Player:
         # sets initial
         self.volume = 0
         self.pitch = 0
-        self.chord = "Amaj"
+        self.chord = "Cmaj"
         self.wav = None
 
         # flag for one char selected
@@ -104,25 +104,25 @@ class Player:
             # update chord based on x position
             if x < 100:
                 self.pitch = chord_list[0][i]
-                self.chord = "Amaj"
+                self.chord = "Cmaj"
             elif (x > 100) & (x < 200):
                 self.pitch = chord_list[1][i]
-                self.chord = "Bmin"
+                self.chord = "Dmin"
             elif (x > 200) & (x < 300):
                 self.pitch = chord_list[2][i]
-                self.chord = "Amaj"
+                self.chord = "Emin"
             elif (x > 300) & (x < 400):
                 self.pitch = chord_list[3][i]
-                self.chord = "Bmin"
+                self.chord = "Fmaj"
             elif (x > 400) & (x < 500):
                 self.pitch = chord_list[4][i]
-                self.chord = "Amaj"
+                self.chord = "Gmaj"
             elif (x > 500) & (x < 600):
                 self.pitch = chord_list[5][i]
-                self.chord = "Bmin"
+                self.chord = "Amin"
             elif x > 600:
                 self.pitch = chord_list[6][i]
-                self.chord = "Amaj"
+                self.chord = "Bdim"
 
         # if one char is selected
         elif self.IS_SELECTED:
