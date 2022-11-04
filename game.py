@@ -5,6 +5,10 @@ from player import Player
 
 class Game:
     def __init__(self):
+
+        # Gloves
+        #self.glove = glove
+
         ######## APPLICATION SETUP ATTRIBUTES ##########
         #turn game on
         pygame.init()
@@ -113,7 +117,7 @@ class Game:
                     for channel in range(0, 50):
                         pygame.mixer.Channel(channel).stop()
 
-                # 3. ####### CHORD OR NOTE SELECTION #######
+                # 3. ####### NEW MOUSE MOTION: CHORD OR NOTE SELECTION #######
                 if event.type == pygame.MOUSEMOTION:
                     self.update_sprite_frame()
 
