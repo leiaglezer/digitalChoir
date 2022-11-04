@@ -1,4 +1,4 @@
+aioconsole~=0.5.1
+asyncio~=3.4.3
+bleak~=0.18.1
 pygame~=2.1.2
-bleak
-aioconsole
-asyncio
