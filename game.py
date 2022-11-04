@@ -4,7 +4,8 @@ from menu import MainMenu
 from player import Player
 
 class Game:
-    def __init__(self):
+    def __init__(self, glove):
+        self.glove = glove
         ######## APPLICATION SETUP ATTRIBUTES ##########
         #turn game on
         pygame.init()
