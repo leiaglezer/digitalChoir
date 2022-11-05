@@ -14,5 +14,8 @@ class DummyRightHand:
         self.y = 0
         return (self.x, self.y)
 
+    def getData(self, data_type):
+        return 0
+
     def isConnected(self):
         return self.isConnected

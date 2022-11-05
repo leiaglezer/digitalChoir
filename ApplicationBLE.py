@@ -243,6 +243,13 @@ class RightHand:
             self.y = IMU['Ay']
         return (self.x, self.y)
 
+    def getData(self, data_type):
+        with ble_lock:
+            if data_type in IMU:
+                return IMU[data_type]
+            else:
+                return 0
+
     def isConnected(self):
         return self.isConnected
 
