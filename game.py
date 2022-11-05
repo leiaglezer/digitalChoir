@@ -1,11 +1,13 @@
+import time
+
 import pygame
 from pygame import mixer
 from menu import MainMenu
 from player import Player
 
 class Game:
-    def __init__(self, glove):
-        self.glove = glove
+    def __init__(self):
+        #self.glove = glove
         ######## APPLICATION SETUP ATTRIBUTES ##########
         #turn game on
         pygame.init()
@@ -32,30 +34,32 @@ class Game:
 
         ######## MUSIC PLAYING ATTRIBUTES ##########
         self.curr_pitch = None
-        self.curr_status = 'Multi Mode'
+        self.curr_mode = 'Multi Mode'
         self.curr_volume = None
         self.curr_chord = None
         self.timbre = "timbre1"
         self.curr_note = None
         self.x = None
         self.y = None
-        self.start_music = False
+        self.play_music = True
 
         ######## MUSIC SETUP ##########
         # setup music player
         mixer.init()
         pygame.mixer.set_num_channels(50)
 
+        #dict of notes at different timbres + corresponding WAV files
         self.notes = {
-            0: {"timbre1": "timbre1A.wav"},
-            1: {"timbre1": "timbre1B.wav"},
-            2: {"timbre1": "timbre1C.wav"},
-            3: {"timbre1": "timbre1D.wav"},
-            4: {"timbre1": "timbre1E.wav"},
-            5: {"timbre1": "timbre1F.wav"},
-            6: {"timbre1": "timbre1G.wav"},
+            0: {"timbre1": "timbre1A.wav", "timbre2": "timbre2A.wav", "timbre3": "timbre3A.wav"},
+            1: {"timbre1": "timbre1B.wav", "timbre2": "timbre2B.wav", "timbre3": "timbre3B.wav"},
+            2: {"timbre1": "timbre1C.wav", "timbre2": "timbre2C.wav", "timbre3": "timbre3C.wav"},
+            3: {"timbre1": "timbre1D.wav", "timbre2": "timbre2D.wav", "timbre3": "timbre3D.wav"},
+            4: {"timbre1": "timbre1E.wav", "timbre2": "timbre2E.wav", "timbre3": "timbre3E.wav"},
+            5: {"timbre1": "timbre1F.wav", "timbre2": "timbre2F.wav", "timbre3": "timbre3F.wav"},
+            6: {"timbre1": "timbre1G.wav", "timbre2": "timbre2G.wav", "timbre3": "timbre3G.wav"},
         }
 
+        #dict of chords
         self.chords = {
             "Cmaj": [2, 4, 6],
             "Dmin": [3, 5, 0],
@@ -71,27 +75,29 @@ class Game:
         self.char_list = [Player(), Player(), Player()]
         self.curr_char = None
         self.curr_frame_volume = None
+        self.index = None
 
-        # set initial image/location
+        # set initial char frame & on-screen location
         for i, char in enumerate(self.char_list):
-            char.frame = char.frame_list[i]
+            char.frame = char.frame_list[3*i]
             char.set_location(i)
 
         ######## SPRITESHEET REFERENCES ##########
         # get x,y of frame bounding box
-        self.x_frame = self.char_list[0].frame_list[0].get_rect().x
-        self.y_frame = self.char_list[0].frame_list[0].get_rect().y
+        self.x_frame_start = self.char_list[0].frame_list[0].get_rect().x
+        self.y_frame_start = self.char_list[0].frame_list[0].get_rect().y
 
         # width/height each frame (all the same size, so can grab any image)
         self.width = self.char_list[0].frame_list[0].get_width()
         self.height = self.char_list[0].frame_list[0].get_height()
+
     def game_loop(self):
         # only plays when player is IN game
         while self.playing:
             for event in pygame.event.get():
                 # 1. ####### GAME SETUP #######
                 # reset background so you get a white screen
-                self.display.blit(pygame.image.load('main.png'), (0, 0))
+                self.display.blit(pygame.image.load('center.png'), (0, 0))
 
                 #get fresh mouse coordinates
                 self.x, self.y = pygame.mouse.get_pos()
@@ -100,44 +106,74 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.quit_game()
 
-                #checks if we need to switch between splash and game screen
+                # checks if we need to switch between splash and game screen
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         self.change_screens()
+                    #for now, tapping x will start/stop the music, this will need to be a button + hand motion.
+                    if event.key == pygame.K_x:
+                        self.start_or_stop_music()
 
-                # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    #changes between single and multi mode
-                    self.update_mode()
+                if self.play_music:
+                    # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        #changes between single and multimode
+                        self.update_mode()
 
-                    # Stop current music, so that correct music starts playing for single/multimode.
-                    for channel in range(0, 50):
-                        pygame.mixer.Channel(channel).stop()
+                        # Stop current music, so that correct music starts playing for single/multimode.
+                        self.stop_music()
 
-                # 3. ####### CHORD OR NOTE SELECTION #######
-                if event.type == pygame.MOUSEMOTION:
-                    self.update_sprite_frame()
+                    # 3. ####### CHORD OR NOTE SELECTION #######
+                    if event.type == pygame.MOUSEMOTION:
+                        self.update_sprite_frame()
 
-                # 4. ####### ANIMATION #######
-                self.draw_sprite()
+                    # 4. ####### ANIMATION #######
+                    self.draw_sprite()
 
-                # 5. ####### MUSIC PLAYING #######
-                self.update_chord_or_note()
-                self.update_volume()
+                    # 5. ####### MUSIC PLAYING #######
+                    self.update_chord_or_note()
+                    self.update_volume()
 
-                # 6. ####### RESET START KEY #######
-                self.reset_key()
+            # 6. ####### RESET START KEY #######
+            self.reset_key()
 
+    def start_or_stop_music(self):
+        if self.play_music:
+            self.stop_music()
+            self.play_music = False
+        else:
+            self.play_music = True
+
+    def stop_music(self):
+        # Stop current music, so that correct music starts playing for single/multimode.
+        for channel in range(0, 50):
+            pygame.mixer.Channel(channel).stop()
+
+    # def set_frame_location(self, char, index):
+    #     char.x_frame_start = index * 150 + 140
+    #     char.y_frame_start = 150
+
+    # sets if one or all blobs are selected
+    # def set_selected_blob(self, char):
+    #     # check if mouse click is within bounding box of char's frame image
+    #     if (self.x > char.x_frame_start) & (self.x < char.x_frame_start + self.width) & (self.y > char.y_frame_start) & (self.y < char.y_frame_start + self.height):
+    #         char.IS_SELECTED = True
+    #
+    #     # all selected, picked random x value it has to be greater then, will be button later
+    #     else:
+    #         char.IS_SELECTED = False
 
     def update_mode(self):
-        # checks if user selects individual char or entire choir
-        for char in self.char_list:
+        for i, char in enumerate(self.char_list):
             char.set_selected_blob(self.x, self.y)
+
             if char.IS_SELECTED:
-                self.curr_status = 'Single Mode'
+                self.curr_mode = 'Single Mode'
+                #char from char_list to reference in single mode
                 self.curr_char = char
+                self.index = i
             if char.ALL_SELECTED:
-                self.curr_status = 'Multi Mode'
+                self.curr_mode = 'Multi Mode'
 
     def play_chord(self, chord):
         #plays all notes in chord list
@@ -150,30 +186,44 @@ class Game:
         #plays all notes in note list, continues playing if still within x boundary.
         if note == self.curr_note:
             return
+        # pygame.mixer.music.fadeout(500)
+        # pygame.time.wait(500)
         file = self.notes[note][self.timbre]
-        print(file)
+        #print(file)
         sound = pygame.mixer.Sound(file)
-        #pygame.mixer.music.fadeout(10)
         pygame.mixer.Channel(channel).play(sound)
 
     def update_sprite_frame(self):
         #updates sprite's current frame based on multi or single mode
-        if self.curr_status == 'Multi Mode':
+        if self.curr_mode == 'Multi Mode' and self.curr_chord is not None:
             for i, char in enumerate(self.char_list):
                 frame = 3 * self.chords[self.curr_chord][i] + self.curr_frame_volume
                 char.frame = char.frame_list[frame]
         else:
-            frame = 3 * self.curr_note + self.curr_frame_volume
-            self.curr_char.frame = self.curr_char.frame_list[frame]
+            if self.curr_note is not None:
+                frame = 3 * self.curr_note + self.curr_frame_volume
+                self.curr_char.frame = self.curr_char.frame_list[frame]
 
     def draw_sprite(self):
-        #draw all chars in char list
-        if self.curr_status == 'Multi Mode':
+        #draw all chars in char_list
+        if self.curr_mode == 'Multi Mode':
+
+            self.display.blit(pygame.image.load('all.png'), (0, 0))
             for char in self.char_list:
                 char.draw(self.display, char.frame)
+
         # same logic but for individual char
-        # displays "closed mouth" for chars that aren't currently playing
         else:
+            # draw correct spotlight background depending on char's index in char_list
+            if self.index == 0:
+                self.display.blit(pygame.image.load('left.png'), (0, 0))
+            elif self.index == 1:
+                self.display.blit(pygame.image.load('center.png'), (0, 0))
+            else:
+                self.display.blit(pygame.image.load('right.png'), (0, 0))
+
+            # update frame for selected char
+            # display "closed mouth" frame for chars that aren't currently selected
             for char in self.char_list:
                 if char == self.curr_char:
                     self.curr_char.draw(self.display, self.curr_char.frame)
@@ -185,9 +235,13 @@ class Game:
 
     def update_chord_or_note(self):
         if self.x is not None:
-            if self.curr_status == 'Multi Mode':
+            if self.curr_mode == 'Multi Mode':
                 # update chord based on x position
+                # play chord will first check to see if this chord is currently playing
+                    # if it is, the method returns, chord keeps playing
+                    # if it isn't, new chord plays and curr_chord updates
                 if (self.x > 0) & (self.x < 100):
+
                     self.play_chord("Cmaj")
                     self.curr_chord = "Cmaj"
                 elif (self.x > 100) & (self.x < 200):
@@ -211,7 +265,7 @@ class Game:
 
             # single mode
             else:
-                # update note based on x position
+                # same logic, but updates note based on x position
                 if self.x < 100:
                     self.play_note(0)
                     self.curr_note = 0
