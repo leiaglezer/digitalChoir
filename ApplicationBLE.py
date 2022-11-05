@@ -37,9 +37,9 @@ class DataToFile:
 
 
 class Connection:
-    
+
     client: BleakClient = None
-    
+
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
@@ -79,7 +79,7 @@ class Connection:
                 await self.connect()
             else:
                 await self.select_device()
-                await asyncio.sleep(15.0, loop=loop)       
+                await asyncio.sleep(15.0)
 
     async def connect(self):
         if self.connected:
@@ -96,7 +96,7 @@ class Connection:
                 while True:
                     if not self.connected:
                         break
-                    await asyncio.sleep(3.0, loop=loop)
+                    await asyncio.sleep(3.0)
             else:
                 print(f"Failed to connect to {self.connected_device.name}")
         except Exception as e:
@@ -104,7 +104,7 @@ class Connection:
 
     async def select_device(self):
         print("Bluetooh LE hardware warming up...")
-        await asyncio.sleep(2.0, loop=loop) # Wait for BLE to initialize.
+        await asyncio.sleep(2.0) # Wait for BLE to initialize.
         devices = await discover()
 
         response = -1
@@ -125,7 +125,7 @@ class Connection:
                     response = int(response.strip())
                 except:
                     print("Please make valid selection.")
-                
+
                 if response > -1 and response < len(devices):
                     break
                 else:
@@ -150,7 +150,7 @@ class Connection:
         temp = int.from_bytes(data, byteorder="big")
         self.rx_data.append(temp)
         #print(data)
-        
+
         header = temp >> 5
         this_data = temp & 0b00011111
 
@@ -160,7 +160,7 @@ class Connection:
         elif header == 0b111:
             #print("y: " + str(this_data))
             setData("Ay", this_data)
-            
+
 
 
         self.record_time_info()
@@ -180,7 +180,7 @@ async def user_console_manager(connection: Connection):
             await connection.client.write_gatt_char(write_characteristic, bytes_to_send) # THIS IS WHERE WE SEND COMMUNICATION FROM PYTHON
             print(f"Sent: {input_str}")
         else:
-            await asyncio.sleep(2.0, loop=loop)
+            await asyncio.sleep(2.0)
 
 
 async def main():
@@ -236,7 +236,7 @@ class RightHand:
         finally:
             print("Disconnecting...")
             loop.run_until_complete(connection.cleanup())
-    
+
     def getCoords(self):
         with ble_lock:
             self.x = IMU['Ax']

@@ -16,11 +16,15 @@ from spritesheet import Spritesheet
 class Player:
     def __init__(self):
         # load frames into array
+        self.right_selected = None
+        self.middle_selected = None
+        self.left_selected = None
         self.frame_list = self.load_frames()
 
         # get x,y of frame bounding box
         self.x = self.frame_list[0].get_rect().x
         self.y = self.frame_list[0].get_rect().y
+
         # width/height each frame (all the same size, so can grab any image)
         self.width = self.frame_list[0].get_width()
         self.height = self.frame_list[0].get_height()
@@ -31,12 +35,15 @@ class Player:
         self.ALL_SELECTED = True
 
 
+
+
     # determines if one or all blobs are selected
     def set_selected_blob(self, mouseX, mouseY):
         # one char selected
         if (mouseX > self.x) & (mouseX < self.x + self.width) & (mouseY > self.y) & (mouseY < self.y + self.height):
             self.IS_SELECTED = True
             self.ALL_SELECTED = False
+
         # all selected, picked random x value it has to be greater then, will be button later
         elif mouseX > 700:
             self.ALL_SELECTED = True
@@ -77,5 +84,4 @@ class Player:
                            my_spritesheet.parse_sprite("image18.png"),
                            my_spritesheet.parse_sprite("image19.png"),
                            my_spritesheet.parse_sprite("image20.png")]
-
         return self.frame_list
