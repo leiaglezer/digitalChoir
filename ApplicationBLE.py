@@ -13,7 +13,8 @@ output_file = f"{root_path}/Desktop/data_dump.csv"
 
 selected_device = []
 loop = None
-IMU = {'Ax': 0, 'Ay': 0}
+IMU = {'RAx': 0, 'RAy': 0, 'isConnected': 0}
+GESTURES = []
 
 class DataToFile:
 
@@ -88,6 +89,8 @@ class Connection:
             await self.client.connect()
             self.connected = await self.client.is_connected()
             if self.connected:
+                with ble_lock:
+                    IMU['isConnected'] = 1
                 print(F"Connected to {self.connected_device.name}")
                 self.client.set_disconnected_callback(self.on_disconnect)
                 await self.client.start_notify(
@@ -156,12 +159,12 @@ class Connection:
 
         if header == 0b110:
             #print("x: " + str(this_data))
-            setData("Ax", this_data)
+            setData("RAx", this_data)
         elif header == 0b111:
             #print("y: " + str(this_data))
-            setData("Ay", this_data)
-
-
+            setData("RAy", this_data)
+        elif header == 0b010:
+            addGesture(this_data)
 
         self.record_time_info()
         if len(self.rx_data) >= self.dump_size:
@@ -199,12 +202,27 @@ write_characteristic = "00001142-0000-1000-8000-00805f9b34fb"
 ble_lock = threading.Lock()
 
 def setData(var, data):
-    if var == "Ax":
+    if var == "RAx":
         with ble_lock:
-            IMU['Ax'] = data
-    if var == "Ay":
+            IMU['RAx'] = data
+    if var == "RAy":
         with ble_lock:
-            IMU['Ay'] = data
+            IMU['RAy'] = data
+
+def addGesture(data):
+    # Translate to local coordinate system
+    if data == 0:
+        with ble_lock:
+            GESTURES.append("LEFT")
+    elif data == 1:
+        with ble_lock:
+            GESTURES.append("UP")
+    elif data == 2:
+        with ble_lock:
+            GESTURES.append("DOWN")
+    elif data == 3:
+        with ble_lock:
+            GESTURES.append("RIGHT")
 
 class RightHand:
     def __init__(self):
@@ -228,7 +246,6 @@ class RightHand:
             asyncio.ensure_future(connection.manager())
             asyncio.ensure_future(user_console_manager(connection))
             asyncio.ensure_future(main())
-            self.isConnected = True
             loop.run_forever()
         except KeyboardInterrupt:
             print()
@@ -239,8 +256,8 @@ class RightHand:
 
     def getCoords(self):
         with ble_lock:
-            self.x = IMU['Ax']
-            self.y = IMU['Ay']
+            self.x = IMU['RAx']
+            self.y = IMU['RAy']
         return (self.x, self.y)
 
     def getData(self, data_type):
@@ -250,8 +267,15 @@ class RightHand:
             else:
                 return 0
 
-    def isConnected(self):
-        return self.isConnected
+    def getGesture(self):
+        answer = []
+        with ble_lock:
+            if len(GESTURES) > 0:
+                for gest in GESTURES:
+                    answer.append(gest)
+                GESTURES.clear()
+        return answer
+
 
 
 #############

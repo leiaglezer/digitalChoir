@@ -15,7 +15,12 @@ class DummyRightHand:
         return (self.x, self.y)
 
     def getData(self, data_type):
+        if data_type == "isConnected":
+            return 1
         return 0
+
+    def getGesture(self):
+        return []
 
     def isConnected(self):
         return self.isConnected

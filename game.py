@@ -6,7 +6,7 @@ from menu import MainMenu
 from player import Player
 
 class Game:
-    def __init__(self):
+    def __init__(self, glove):
         #self.glove = glove
         ######## APPLICATION SETUP ATTRIBUTES ##########
         #turn game on
@@ -17,6 +17,16 @@ class Game:
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
+        # UI Mode
+        self.glove_ui = False
+        self.mouse_ui = True
+
+        # Glove
+        self.glove = glove
+        self.IMU_DATA_EVENT = pygame.USEREVENT + 1
+        self.imu_data = {'RAx': 0, 'RAy': 0, 'LAx': 0, 'LAy': 0}
+        self.gestures = []
+        pygame.time.set_timer(self.IMU_DATA_EVENT, 250)
 
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
@@ -39,8 +49,8 @@ class Game:
         self.curr_chord = None
         self.timbre = "timbre1"
         self.curr_note = None
-        self.x = None
-        self.y = None
+        self.mouse_x = None
+        self.mouse_y = None
         self.play_music = True
 
         ######## MUSIC SETUP ##########
@@ -100,7 +110,7 @@ class Game:
                 self.display.blit(pygame.image.load('center.png'), (0, 0))
 
                 #get fresh mouse coordinates
-                self.x, self.y = pygame.mouse.get_pos()
+                self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
 
                 # checks if player wants to quit game
                 if event.type == pygame.QUIT:
@@ -114,18 +124,22 @@ class Game:
                     if event.key == pygame.K_x:
                         self.start_or_stop_music()
 
+                if event.type == self.IMU_DATA_EVENT:
+                    self.update_imu()
+
                 if self.play_music:
+                    if self.mouse_ui:
                     # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
-                    if event.type == pygame.MOUSEBUTTONDOWN:
-                        #changes between single and multimode
-                        self.update_mode()
+                        if event.type == pygame.MOUSEBUTTONDOWN:
+                            #changes between single and multimode
+                            self.update_mode()
 
-                        # Stop current music, so that correct music starts playing for single/multimode.
-                        self.stop_music()
+                            # Stop current music, so that correct music starts playing for single/multimode.
+                            self.stop_music()
 
-                    # 3. ####### CHORD OR NOTE SELECTION #######
-                    if event.type == pygame.MOUSEMOTION:
-                        self.update_sprite_frame()
+                        # 3. ####### CHORD OR NOTE SELECTION #######
+                        if event.type == pygame.MOUSEMOTION:
+                            self.update_sprite_frame()
 
                     # 4. ####### ANIMATION #######
                     self.draw_sprite()
@@ -136,6 +150,12 @@ class Game:
 
             # 6. ####### RESET START KEY #######
             self.reset_key()
+
+    def update_imu(self):
+        self.gestures += self.glove.getGesture()
+        self.imu_data['RAx'] = self.glove.getData("RAx")
+        self.imu_data['RAy'] = self.glove.getData("RAy")
+        print(self.gestures)
 
     def start_or_stop_music(self):
         if self.play_music:
@@ -156,7 +176,7 @@ class Game:
     # sets if one or all blobs are selected
     # def set_selected_blob(self, char):
     #     # check if mouse click is within bounding box of char's frame image
-    #     if (self.x > char.x_frame_start) & (self.x < char.x_frame_start + self.width) & (self.y > char.y_frame_start) & (self.y < char.y_frame_start + self.height):
+    #     if (self.mouse_x > char.x_frame_start) & (self.mouse_x < char.x_frame_start + self.width) & (self.mouse_y > char.y_frame_start) & (self.mouse_y < char.y_frame_start + self.height):
     #         char.IS_SELECTED = True
     #
     #     # all selected, picked random x value it has to be greater then, will be button later
@@ -165,7 +185,7 @@ class Game:
 
     def update_mode(self):
         for i, char in enumerate(self.char_list):
-            char.set_selected_blob(self.x, self.y)
+            char.set_selected_blob(self.mouse_x, self.mouse_y)
 
             if char.IS_SELECTED:
                 self.curr_mode = 'Single Mode'
@@ -234,71 +254,71 @@ class Game:
         pygame.display.update()
 
     def update_chord_or_note(self):
-        if self.x is not None:
-            if self.curr_mode == 'Multi Mode':
-                # update chord based on x position
-                # play chord will first check to see if this chord is currently playing
-                    # if it is, the method returns, chord keeps playing
-                    # if it isn't, new chord plays and curr_chord updates
-                if (self.x > 0) & (self.x < 100):
+        if self.mouse_ui:
+            if self.mouse_x is not None:
+                if self.curr_mode == 'Multi Mode':
+                    # update chord based on x position
+                    # play chord will first check to see if this chord is currently playing
+                        # if it is, the method returns, chord keeps playing
+                        # if it isn't, new chord plays and curr_chord updates
+                    if (self.mouse_x > 0) and (self.mouse_x < 100):
+                        self.play_chord("Cmaj")
+                        self.curr_chord = "Cmaj"
+                    elif (self.mouse_x > 100) & (self.mouse_x < 200):
+                        self.play_chord("Dmin")
+                        self.curr_chord = "Dmin"
+                    elif (self.mouse_x > 200) & (self.mouse_x < 300):
+                        self.play_chord("Emin")
+                        self.curr_chord = "Emin"
+                    elif (self.mouse_x > 300) & (self.mouse_x < 400):
+                        self.play_chord("Fmaj")
+                        self.curr_chord = "Fmaj"
+                    elif (self.mouse_x > 400) & (self.mouse_x < 500):
+                        self.play_chord("Gmaj")
+                        self.curr_chord = "Gmaj"
+                    elif (self.mouse_x > 500) & (self.mouse_x < 600):
+                        self.play_chord("Amin")
+                        self.curr_chord = "Amin"
+                    elif (self.mouse_x > 600) & (self.mouse_x < 700):
+                        self.play_chord("Bdim")
+                        self.curr_chord = "Bdim"
 
-                    self.play_chord("Cmaj")
-                    self.curr_chord = "Cmaj"
-                elif (self.x > 100) & (self.x < 200):
-                    self.play_chord("Dmin")
-                    self.curr_chord = "Dmin"
-                elif (self.x > 200) & (self.x < 300):
-                    self.play_chord("Emin")
-                    self.curr_chord = "Emin"
-                elif (self.x > 300) & (self.x < 400):
-                    self.play_chord("Fmaj")
-                    self.curr_chord = "Fmaj"
-                elif (self.x > 400) & (self.x < 500):
-                    self.play_chord("Gmaj")
-                    self.curr_chord = "Gmaj"
-                elif (self.x > 500) & (self.x < 600):
-                    self.play_chord("Amin")
-                    self.curr_chord = "Amin"
-                elif (self.x > 600) & (self.x < 700):
-                    self.play_chord("Bdim")
-                    self.curr_chord = "Bdim"
-
-            # single mode
-            else:
-                # same logic, but updates note based on x position
-                if self.x < 100:
-                    self.play_note(0)
-                    self.curr_note = 0
-                elif (self.x > 100) & (self.x < 200):
-                    self.play_note(1)
-                    self.curr_note = 1
-                elif (self.x > 200) & (self.x < 300):
-                    self.play_note(2)
-                    self.curr_note = 2
-                elif (self.x > 300) & (self.x < 400):
-                    self.play_note(3)
-                    self.curr_note = 3
-                elif (self.x > 400) & (self.x < 500):
-                    self.play_note(4)
-                    self.curr_note = 4
-                elif (self.x > 500) & (self.x < 600):
-                    self.play_note(5)
-                    self.curr_note = 5
-                elif (self.x > 600) & (self.x < 700):
-                    self.play_note(6)
-                    self.curr_note = 6
+                # single mode
                 else:
-                    return
+                    # same logic, but updates note based on x position
+                    if self.mouse_x < 100:
+                        self.play_note(0)
+                        self.curr_note = 0
+                    elif (self.mouse_x > 100) & (self.mouse_x < 200):
+                        self.play_note(1)
+                        self.curr_note = 1
+                    elif (self.mouse_x > 200) & (self.mouse_x < 300):
+                        self.play_note(2)
+                        self.curr_note = 2
+                    elif (self.mouse_x > 300) & (self.mouse_x < 400):
+                        self.play_note(3)
+                        self.curr_note = 3
+                    elif (self.mouse_x > 400) & (self.mouse_x < 500):
+                        self.play_note(4)
+                        self.curr_note = 4
+                    elif (self.mouse_x > 500) & (self.mouse_x < 600):
+                        self.play_note(5)
+                        self.curr_note = 5
+                    elif (self.mouse_x > 600) & (self.mouse_x < 700):
+                        self.play_note(6)
+                        self.curr_note = 6
+                    else:
+                        return
     def update_volume(self):
-        if self.y is not None:
+        if self.mouse_y is not None:
             # volume update based on y position
-            if self.y > 350:
+            if self.mouse_y > 350:
                 self.curr_volume = 0
                 self.curr_frame_volume = 0
-            elif (self.y < 350) & (self.y > 200):
+            elif (self.mouse_y < 350) & (self.mouse_y > 200):
                 self.curr_volume = 0.5
                 self.curr_frame_volume = 1
-            elif self.y < 200:
+            elif self.mouse_y < 200:
                 self.curr_volume = 1.0
                 self.curr_frame_volume = 2
             else:

@@ -36,6 +36,9 @@ float Ax, Ay, Az;
 float Gx, Gy, Gz;
 int degreesX = 0;
 int degreesY = 0;
+int fc = 0, bc = 0, rc = 0, lc = 0; // gesture recognition counters
+int gestureMinLength = 15;
+int plusThreshold = 230, minusThreshold = -230;
 
 typedef union {
 	struct {
@@ -61,10 +64,10 @@ typedef union {
 void setup() {
 
   // Start serial.
-  //Serial.begin(9600);
+  Serial.begin(9600);
 
   // Ensure serial port is ready.
-  //while (!Serial);
+  while (!Serial);
   //serialLight();
 
   // Prepare LED pins.
@@ -232,6 +235,10 @@ void onIMUdata() {
   IMU.readGyroscope(Gx, Gy, Gz);
   IMU.readAcceleration(Ax, Ay, Az);
 
+  //Serial.println("Gx " + String(Gx));
+  //Serial.println("Gy " + String(Gy));
+  //Serial.println("Gz " + String(Gz));
+
   // Create samples
   IMU_Sample gyroSample;
   gyroSample.sample.x = Gx;
@@ -291,11 +298,78 @@ void onIMUdata() {
   degreesX = map(Ax, -100, 97, 0, 90);
   degreesY = map(Ay, -100, 97, 0, 90);
 
+  int tempSamples = 0;
   // [sensorMode][L/R][X/Y][d1][d2][d3][d4][d5]
   sampleBuffer[0] = (uint8_t) (0b11000000 + map(degreesX, 0, 90, 0, 0b11111));
   sampleBuffer[1] = (uint8_t) (0b11100000 + map(degreesY, 0, 90, 0, 0b11111));
 
-  samplesRead = 2;
+  tempSamples += 2;
+
+  if(Gy > plusThreshold)
+  {
+    Serial.println("Collision front");
+    fc++;
+  }
+  if(Gy < minusThreshold)
+  {
+    Serial.println("Collision back");
+    bc++;
+  }
+  if(Gx < minusThreshold)
+  {
+    Serial.println("Collision right");
+    rc++;
+  }
+    if(Gx > plusThreshold)
+  {
+    Serial.println("Collision left");
+    lc++;    
+  }
+
+  int numGestInc = 0;
+  if (fc > 0) {
+    numGestInc++;
+  }
+  if (bc > 0) {
+    numGestInc++;
+  }
+  if (rc > 0) {
+    numGestInc++;
+  }
+  if (lc > 0) {
+    numGestInc++;
+  }
+  if (numGestInc > 1) {
+    lc = 0;
+    rc = 0;
+    fc = 0;
+    bc = 0;
+  }
+
+  // [sensorMode][L/R][X/Y][d1][d2][d3][d4][d5]
+  // data --> left = 2, right = 1, front = 3, back = 0
+  if (lc >= gestureMinLength) {
+    lc = 0;
+    sampleBuffer[tempSamples] = (uint8_t) (0b01000010);
+    tempSamples++;
+  }
+  if (rc >= gestureMinLength) {
+    rc = 0;
+    sampleBuffer[tempSamples] = (uint8_t) (0b01000001);
+    tempSamples++;
+  }
+  if (fc >= gestureMinLength) {
+    fc = 0;
+    sampleBuffer[tempSamples] = (uint8_t) (0b01000011);
+    tempSamples++;
+  }
+  if (bc >= gestureMinLength) {
+    bc = 0;
+    sampleBuffer[tempSamples] = (uint8_t) (0b01000000);
+    tempSamples++;
+  }
+
+  samplesRead = tempSamples;
 }
 
 
