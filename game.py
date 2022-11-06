@@ -6,7 +6,7 @@ from menu import MainMenu
 from player import Player
 
 class Game:
-    def __init__(self, glove):
+    def __init__(self, gloves):
         #self.glove = glove
         ######## APPLICATION SETUP ATTRIBUTES ##########
         #turn game on
@@ -18,11 +18,13 @@ class Game:
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         # UI Mode
-        self.glove_ui = False
-        self.mouse_ui = True
+        self.glove_ui = True
+        self.mouse_ui = False
 
         # Glove
-        self.glove = glove
+        self.gloves = gloves
+        self.lh = self.gloves[0]
+        self.rh = self.gloves[1]
         self.IMU_DATA_EVENT = pygame.USEREVENT + 1
         self.imu_data = {'RAx': 0, 'RAy': 0, 'LAx': 0, 'LAy': 0}
         self.gestures = []
@@ -152,9 +154,16 @@ class Game:
             self.reset_key()
 
     def update_imu(self):
-        self.gestures += self.glove.getGesture()
-        self.imu_data['RAx'] = self.glove.getData("RAx")
-        self.imu_data['RAy'] = self.glove.getData("RAy")
+        self.gestures += self.rh.getGesture()
+        self.imu_data['RAx'] = self.rh.getData("RAx")
+        self.imu_data['RAy'] = self.rh.getData("RAy")
+
+        self.gestures += self.lh.getGesture()
+        self.imu_data['LAx'] = self.lh.getData("LAx")
+        self.imu_data['LAy'] = self.lh.getData("LAy")
+
+        print("RX: " + str(self.imu_data['RAx']) + " RY: " + str(self.imu_data['RAy']))
+        print("LX: " + str(self.imu_data['LAx']) + " LY: " + str(self.imu_data['LAy']))
         print(self.gestures)
 
     def start_or_stop_music(self):

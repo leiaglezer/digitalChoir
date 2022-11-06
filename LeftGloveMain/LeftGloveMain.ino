@@ -11,8 +11,8 @@
 // Device name
 const char* nameOfPeripheral = "Arduino Nano BLE 33";
 const char* uuidOfService = "00001101-0000-1000-8000-00805f9b34fb";
-const char* uuidOfRxChar = "00001142-0000-1000-8000-00805f9b34fb";
-const char* uuidOfTxChar = "00001143-0000-1000-8000-00805f9b34fb";
+const char* uuidOfRxChar = "00001144-0000-1000-8000-00805f9b34fb";
+const char* uuidOfTxChar = "00001145-0000-1000-8000-00805f9b34fb";
 
 // BLE Service
 BLEService microphoneService(uuidOfService);
@@ -103,8 +103,8 @@ void setup() {
   rxChar.setEventHandler(BLEWritten, onRxCharValueUpdate);
   
   // Let's tell devices about us.
-  BLE.setLocalName("RightGlove");
-  BLE.setDeviceName("RightGlove");
+  BLE.setLocalName("LeftGlove");
+  BLE.setDeviceName("LeftGlove");
   BLE.advertise();
   
   // Print out full UUID and MAC address.
@@ -302,8 +302,8 @@ void onIMUdata() {
 
   int tempSamples = 0;
   // [sensorMode][L/R][X/Y][d1][d2][d3][d4][d5]
-  sampleBuffer[0] = (uint8_t) (0b11000000 + map(degreesX, 0, 90, 0, 0b11111));
-  sampleBuffer[1] = (uint8_t) (0b11100000 + map(degreesY, 0, 90, 0, 0b11111));
+  sampleBuffer[0] = (uint8_t) (0b10000000 + map(degreesX, 0, 90, 0, 0b11111));
+  sampleBuffer[1] = (uint8_t) (0b10100000 + map(degreesY, 0, 90, 0, 0b11111));
 
   tempSamples += 2;
 
@@ -352,22 +352,22 @@ void onIMUdata() {
   // data --> left = 2, right = 1, front = 3, back = 0
   if (lc >= gestureMinLength) {
     lc = 0;
-    sampleBuffer[tempSamples] = (uint8_t) (0b01000010);
+    sampleBuffer[tempSamples] = (uint8_t) (0b00000010);
     tempSamples++;
   }
   if (rc >= gestureMinLength) {
     rc = 0;
-    sampleBuffer[tempSamples] = (uint8_t) (0b01000001);
+    sampleBuffer[tempSamples] = (uint8_t) (0b00000001);
     tempSamples++;
   }
   if (fc >= gestureMinLength) {
     fc = 0;
-    sampleBuffer[tempSamples] = (uint8_t) (0b01000011);
+    sampleBuffer[tempSamples] = (uint8_t) (0b00000011);
     tempSamples++;
   }
   if (bc >= gestureMinLength) {
     bc = 0;
-    sampleBuffer[tempSamples] = (uint8_t) (0b01000000);
+    sampleBuffer[tempSamples] = (uint8_t) (0b00000000);
     tempSamples++;
   }
 

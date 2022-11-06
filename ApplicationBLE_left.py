@@ -11,7 +11,7 @@ import threading
 root_path = os.environ["HOME"]
 output_file = f"{root_path}/Desktop/data_dump.csv"
 
-IMU = {'RAx': 0, 'RAy': 0, 'isConnected': 0}
+IMU = {'RAx': 0, 'RAy': 0, 'isConnected': 0, 'LAx': 0, 'LAy': 0}
 GESTURES = []
 
 class DataToFile:
@@ -158,14 +158,14 @@ class Connection:
         header = temp >> 5
         this_data = temp & 0b00011111
 
-        if header == 0b110:
+        if header == 0b100:
             #print("x: " + str(this_data))
-            setData("RAx", this_data)
-        elif header == 0b111:
+            setData("LAx", this_data)
+        elif header == 0b101:
             #print("y: " + str(this_data))
-            setData("RAy", this_data)
-        elif header == 0b010:
-            addGesture(this_data, "R")
+            setData("LAy", this_data)
+        elif header == 0b000:
+            addGesture(this_data, "L")
 
         self.record_time_info()
         if len(self.rx_data) >= self.dump_size:
@@ -197,18 +197,14 @@ async def main():
 # API Controller
 #############
 
-read_characteristic = "00001143-0000-1000-8000-00805f9b34fb"
-write_characteristic = "00001142-0000-1000-8000-00805f9b34fb"
+read_characteristic = "00001145-0000-1000-8000-00805f9b34fb"
+write_characteristic = "00001144-0000-1000-8000-00805f9b34fb"
 
 ble_lock = threading.Lock()
 
 def setData(var, data):
-    if var == "RAx":
-        with ble_lock:
-            IMU['RAx'] = data
-    if var == "RAy":
-        with ble_lock:
-            IMU['RAy'] = data
+    with ble_lock:
+        IMU[var] = data
 
 def addGesture(data, hand):
     # Translate to local coordinate system
@@ -225,9 +221,9 @@ def addGesture(data, hand):
         with ble_lock:
             GESTURES.append(hand + "RIGHT")
 
-class RightHand:
+class LeftHand:
     def __init__(self):
-        print("Right Hand Init")
+        print("Left Hand Init")
         self.x = 0
         self.y = 0
         self.isConnected = False
@@ -241,7 +237,7 @@ class RightHand:
 
         data_to_file = DataToFile(output_file)
         connection = Connection(
-            loop, read_characteristic, write_characteristic, data_to_file.write_to_csv, "RightGlove"
+            loop, read_characteristic, write_characteristic, data_to_file.write_to_csv, "LeftGlove"
         )
         try:
             asyncio.ensure_future(connection.manager())
@@ -257,8 +253,8 @@ class RightHand:
 
     def getCoords(self):
         with ble_lock:
-            self.x = IMU['RAx']
-            self.y = IMU['RAy']
+            self.x = IMU['LAx']
+            self.y = IMU['LAy']
         return (self.x, self.y)
 
     def getData(self, data_type):
