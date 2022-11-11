@@ -3,13 +3,17 @@ import pygame
 import threading
 from game import Game
 from DummyBLE import DummyRightHand
+from ApplicationBLE import RightHand
+from ApplicationBLE_left import LeftHand
 
 if __name__ == "__main__":
     # everything in init in game will run when this runs.
     # creates game object
 
-    rh = DummyRightHand()
-    lh = DummyRightHand()
+    # rh = DummyRightHand()
+    # lh = DummyRightHand()
+    rh = RightHand()
+    lh = LeftHand()
 
     gloves = (lh, rh)
     g = Game(gloves)

@@ -13,13 +13,14 @@ class Game:
         pygame.init()
         # background image
         self.background = pygame.image.load('splash.png')
+        self.showhelp = False
         # canvas size
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
         # creates canvas
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         # UI Mode
-        self.glove_ui = True
-        self.mouse_ui = False
+        self.glove_ui = False
+        self.mouse_ui = True
 
         # Glove
         self.gloves = gloves
@@ -49,7 +50,7 @@ class Game:
         self.curr_mode = 'Multi Mode'
         self.curr_volume = None
         self.curr_chord = None
-        self.timbre = "timbre1"
+        self.timbre = "timbre2"
         self.curr_note = None
         self.mouse_x = None
         self.mouse_y = None
@@ -114,6 +115,9 @@ class Game:
                 #get fresh mouse coordinates
                 self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
 
+                #if glove, get fresh glove imu data
+                #?
+
                 # checks if player wants to quit game
                 if event.type == pygame.QUIT:
                     self.quit_game()
@@ -133,6 +137,31 @@ class Game:
                     if self.mouse_ui:
                     # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
                         if event.type == pygame.MOUSEBUTTONDOWN:
+                            click_x,click_y =  pygame.mouse.get_pos()
+                            print( "CLICKED MOUSE-  " , pygame.mouse.get_pos())
+                            #Check if back button
+                            if click_x >=15 and click_x<=50 and click_y>=15 and click_y<=50:
+                                print("Back clicked")
+                                self.change_screens()
+                                self.reset_canvas()
+                                self.reset_key()
+                                
+                            #Check if help button
+                            if click_x >=664 and click_x<=682 and click_y>=20 and click_y<=48:
+                                print("Help clicked")
+                                self.showhelp = True
+                                # self.start_or_stop_music()  # for some reason this is breaking the close function but music needs to be stopped when hep screen is displayed
+
+                            #Check for close button in help menu
+                            if self.showhelp == True:
+                                if click_x >=565 and click_x<=575 and click_y>=40 and click_y<=50:
+                                    print("Help closed")
+                                    self.showhelp = False
+                                    # self.start_or_stop_music()
+
+
+                                
+
                             #changes between single and multimode
                             self.update_mode()
 
@@ -143,12 +172,30 @@ class Game:
                         if event.type == pygame.MOUSEMOTION:
                             self.update_sprite_frame()
 
+                    # if self.glove_ui:
+                    # 2. ####### Left hand moves and stays for 5 seconmds: PLAY MODE SELECTION #######
+                        # player1_y = 1
+                        # player2_y = 2
+                        # player2_y = 3
+                        # if <<self.imu_data['Lay'] for 10 seconds>>> > player1_y:
+                        #     #changes between single and multimode
+                        #     self.update_mode()
+
+                        #     # Stop current music, so that correct music starts playing for single/multimode.
+                        #     self.stop_music()
+
+                        # # 3. ####### CHORD OR NOTE SELECTION #######
+                        # if <<<changes in imu_data['Rax']:
+                        #     self.update_sprite_frame()
+
+
                     # 4. ####### ANIMATION #######
                     self.draw_sprite()
 
                     # 5. ####### MUSIC PLAYING #######
                     self.update_chord_or_note()
                     self.update_volume()
+
 
             # 6. ####### RESET START KEY #######
             self.reset_key()
@@ -236,6 +283,7 @@ class Game:
     def draw_sprite(self):
         #draw all chars in char_list
         if self.curr_mode == 'Multi Mode':
+                      # volume update based on y position
 
             self.display.blit(pygame.image.load('all.png'), (0, 0))
             for char in self.char_list:
@@ -259,8 +307,37 @@ class Game:
                 else:
                     char.draw(self.display, char.frame_list[0])
 
+        self.draw_icons()
+        self.display_help()
         self.window.blit(self.display, (0, 0))
         pygame.display.update()
+
+    def display_help(self):
+        if self.showhelp==True:
+            helpscreen = pygame.image.load('help-stage.png')
+            helpscreen = pygame.transform.scale(helpscreen, (690,435))
+            self.display.blit(helpscreen, (0,0))
+        
+
+
+    def draw_volume(self):
+        if self.curr_volume == 0:
+            self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        elif self.curr_volume == 0.5:
+            self.display.blit(pygame.image.load('volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        elif self.curr_volume == 1.0:
+            self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        else:
+            self.display.blit(pygame.image.load('volume1.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+
+    def draw_icons(self):
+        self.draw_volume()
+        self.display.blit(pygame.image.load('backbutton.png'), (10,10))
+        self.display.blit(pygame.image.load('help.png'), (self.DISPLAY_W- 40,15))
+
+
+
+        
 
     def update_chord_or_note(self):
         if self.mouse_ui:
@@ -322,17 +399,27 @@ class Game:
         if self.mouse_y is not None:
             # volume update based on y position
             if self.mouse_y > 350:
+                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0
                 self.curr_frame_volume = 0
             elif (self.mouse_y < 350) & (self.mouse_y > 200):
+                # self.display.blit(pygame.image.load('volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0.5
                 self.curr_frame_volume = 1
             elif self.mouse_y < 200:
+                # self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 1.0
                 self.curr_frame_volume = 2
             else:
+                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0.0
                 self.curr_frame_volume = 0
+            
+            
+            # for char in self.char_list:
+            #     char.draw(self.display, char.frame)
+            #     self.window.blit(self.display, (0, 0))
+            # pygame.display.update()
 
             for channel in range(0, 50):
                 pygame.mixer.Channel(channel).set_volume(self.curr_volume)
@@ -346,6 +433,26 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self.start = True
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                click_x,click_y =  pygame.mouse.get_pos()
+                print( "CLICKED MOUSE-  " , pygame.mouse.get_pos())
+
+                #Mouse and Glove button clicks
+                if click_x >=174 and click_x<=312 and click_y>=324 and click_y<=370:
+                    print("Mouse Selected")
+                    self.curr_menu.glove_selected= False
+                    self.curr_menu.mouse_selected= True
+                    self.curr_menu.initial_buttons= False
+                    #Select Mouse UI
+                elif click_x >=405 and click_x<=543 and click_y>=324 and click_y<=370:
+                    print("Glove Selected")
+                    self.curr_menu.glove_selected= True
+                    self.curr_menu.mouse_selected= False
+                    self.curr_menu.initial_buttons= False
+                    #Select Glove UI
+
+            
     def reset_canvas(self):
         # redraw fresh canvas
         self.display.fill(self.WHITE)
@@ -357,3 +464,4 @@ class Game:
     def change_screens(self):
         self.start = True
         self.playing = False
+
