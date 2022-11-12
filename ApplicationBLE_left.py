@@ -12,6 +12,7 @@ root_path = os.environ["HOME"]
 output_file = f"{root_path}/Desktop/data_dump.csv"
 
 IMU = {'RAx': 0, 'RAy': 0, 'isConnected': 0, 'LAx': 0, 'LAy': 0}
+STATUS = {'start': 0}
 GESTURES = []
 
 class DataToFile:
@@ -232,6 +233,9 @@ class LeftHand:
         print("RUNNING FROM main.py")
         #loop = asyncio.get_event_loop()
 
+        while STATUS['start'] != 1:
+            continue
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -256,6 +260,10 @@ class LeftHand:
             self.x = IMU['LAx']
             self.y = IMU['LAy']
         return (self.x, self.y)
+
+    def setStatus(self, status):
+        with ble_lock:
+            STATUS['start'] = status
 
     def getData(self, data_type):
         with ble_lock:

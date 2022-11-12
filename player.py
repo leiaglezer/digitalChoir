@@ -53,6 +53,24 @@ class Player:
             self.ALL_SELECTED = False
             return None
 
+    # determines if one or all blobs are selected using gloves
+    def set_selected_blob_glove(self, imu_data, index):
+        x = imu_data['RAx']
+
+        # one char selected
+        if x >= index * 10 and x < (index + 1) * 10:
+            self.IS_SELECTED = True
+            self.ALL_SELECTED = False
+
+        # all selected, picked random x value it has to be greater then, will be button later
+        elif x >= 30:
+            self.ALL_SELECTED = True
+            self.IS_SELECTED = False
+        else:
+            self.IS_SELECTED = False
+            self.ALL_SELECTED = False
+            return None
+
     def set_location(self, index):
         self.x = index * 150 + 165
         self.y = 150

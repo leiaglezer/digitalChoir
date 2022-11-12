@@ -29,7 +29,7 @@ class Game:
         self.IMU_DATA_EVENT = pygame.USEREVENT + 1
         self.imu_data = {'RAx': 0, 'RAy': 0, 'LAx': 0, 'LAy': 0}
         self.gestures = []
-        pygame.time.set_timer(self.IMU_DATA_EVENT, 250)
+        pygame.time.set_timer(self.IMU_DATA_EVENT, 100)
 
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
@@ -88,7 +88,9 @@ class Game:
         self.char_list = [Player(), Player(), Player()]
         self.curr_char = None
         self.curr_frame_volume = None
+        self.last_frame_volume = None
         self.index = None
+        self.last_index = None
 
         # set initial char frame & on-screen location
         for i, char in enumerate(self.char_list):
@@ -130,47 +132,56 @@ class Game:
                     if event.key == pygame.K_x:
                         self.start_or_stop_music()
 
-                if event.type == self.IMU_DATA_EVENT:
+                if self.glove_ui and event.type == self.IMU_DATA_EVENT:
                     self.update_imu()
+                    self.update_volume()
+                    self.update_mode()
+                    
+                    # 5. ####### MUSIC PLAYING #######
+                    if self.last_index != self.index:
+                        self.stop_music()
+                        self.update_sprite_frame()
+                    if self.curr_frame_volume != self.last_frame_volume:
+                        self.update_sprite_frame()
+
+                    self.draw_sprite()
+                    if self.play_music:
+                        self.update_chord_or_note()
 
                 if self.play_music:
-                    if self.mouse_ui:
-                    # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
-                        if event.type == pygame.MOUSEBUTTONDOWN:
-                            click_x,click_y =  pygame.mouse.get_pos()
-                            print( "CLICKED MOUSE-  " , pygame.mouse.get_pos())
-                            #Check if back button
-                            if click_x >=15 and click_x<=50 and click_y>=15 and click_y<=50:
-                                print("Back clicked")
-                                self.change_screens()
-                                self.reset_canvas()
-                                self.reset_key()
-                                
-                            #Check if help button
-                            if click_x >=664 and click_x<=682 and click_y>=20 and click_y<=48:
-                                print("Help clicked")
-                                self.showhelp = True
-                                # self.start_or_stop_music()  # for some reason this is breaking the close function but music needs to be stopped when hep screen is displayed
+                # 2. ####### NEW MOUSECLICK: PLAY MODE SELECTION #######
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        click_x,click_y =  pygame.mouse.get_pos()
+                        print( "CLICKED MOUSE-  " , pygame.mouse.get_pos())
+                        #Check if back button
+                        if click_x >=15 and click_x<=50 and click_y>=15 and click_y<=50:
+                            print("Back clicked")
+                            self.change_screens()
+                            self.reset_canvas()
+                            self.reset_key()
+                            
+                        #Check if help button
+                        if click_x >=664 and click_x<=682 and click_y>=20 and click_y<=48:
+                            print("Help clicked")
+                            self.showhelp = True
+                            # self.start_or_stop_music()  # for some reason this is breaking the close function but music needs to be stopped when hep screen is displayed
 
-                            #Check for close button in help menu
-                            if self.showhelp == True:
-                                if click_x >=565 and click_x<=575 and click_y>=40 and click_y<=50:
-                                    print("Help closed")
-                                    self.showhelp = False
-                                    # self.start_or_stop_music()
+                        #Check for close button in help menu
+                        if self.showhelp == True:
+                            if click_x >=565 and click_x<=575 and click_y>=40 and click_y<=50:
+                                print("Help closed")
+                                self.showhelp = False
+                                # self.start_or_stop_music()gi
 
+                        #changes between single and multimode
+                        self.update_mode()
 
-                                
+                        # Stop current music, so that correct music starts playing for single/multimode.
+                        self.stop_music()
 
-                            #changes between single and multimode
-                            self.update_mode()
-
-                            # Stop current music, so that correct music starts playing for single/multimode.
-                            self.stop_music()
-
-                        # 3. ####### CHORD OR NOTE SELECTION #######
-                        if event.type == pygame.MOUSEMOTION:
-                            self.update_sprite_frame()
+                    # 3. ####### CHORD OR NOTE SELECTION #######
+                    if event.type == pygame.MOUSEMOTION:
+                        self.update_sprite_frame()
 
                     # if self.glove_ui:
                     # 2. ####### Left hand moves and stays for 5 seconmds: PLAY MODE SELECTION #######
@@ -198,6 +209,8 @@ class Game:
 
 
             # 6. ####### RESET START KEY #######
+            self.last_index = self.index
+            self.last_frame_volume = self.curr_frame_volume
             self.reset_key()
 
     def update_imu(self):
@@ -241,7 +254,11 @@ class Game:
 
     def update_mode(self):
         for i, char in enumerate(self.char_list):
-            char.set_selected_blob(self.mouse_x, self.mouse_y)
+            if self.mouse_ui:
+                char.set_selected_blob(self.mouse_x, self.mouse_y)
+            if self.glove_ui:
+                char.set_selected_blob_glove(self.imu_data, i)
+                print(str(i) + " " + str(char.IS_SELECTED))
 
             if char.IS_SELECTED:
                 self.curr_mode = 'Single Mode'
@@ -321,14 +338,15 @@ class Game:
 
 
     def draw_volume(self):
-        if self.curr_volume == 0:
-            self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
-        elif self.curr_volume == 0.5:
-            self.display.blit(pygame.image.load('volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
-        elif self.curr_volume == 1.0:
-            self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
-        else:
-            self.display.blit(pygame.image.load('volume1.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        # if self.curr_volume == 0:
+        #     self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        # elif self.curr_volume == 0.5:
+        #     self.display.blit(pygame.image.load('volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        # elif self.curr_volume == 1.0:
+        #     self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        # else:
+        #     self.display.blit(pygame.image.load('volume1.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        return
 
     def draw_icons(self):
         self.draw_volume()
@@ -395,8 +413,60 @@ class Game:
                         self.curr_note = 6
                     else:
                         return
+        if self.glove_ui:
+            if self.curr_mode == "Multi Mode":
+                x = self.imu_data['LAx'] * 22.5
+                if x < 100:
+                    self.play_chord("Cmaj")
+                    self.curr_chord = "Cmaj"
+                elif x < 200:
+                    self.play_chord("Dmin")
+                    self.curr_chord = "Dmin"
+                elif x < 300:
+                    self.play_chord("Emin")
+                    self.curr_chord = "Emin"
+                elif x < 400:
+                    self.play_chord("Fmaj")
+                    self.curr_chord = "Fmaj"
+                elif x < 500:
+                    self.play_chord("Gmaj")
+                    self.curr_chord = "Gmaj"
+                elif x < 600:
+                    self.play_chord("Amin")
+                    self.curr_chord = "Amin"
+                elif x < 700:
+                    self.play_chord("Bdim")
+                    self.curr_chord = "Bdim"
+                else:
+                    return
+            else:
+                x = self.imu_data['LAx'] * 22.5
+                if x < 100:
+                    self.play_note(0)
+                    self.curr_note = 0
+                elif x < 200:
+                    self.play_note(1)
+                    self.curr_note = 1
+                elif x < 300:
+                    self.play_note(2)
+                    self.curr_note = 2
+                elif x < 400:
+                    self.play_note(3)
+                    self.curr_note = 3
+                elif x < 500:
+                    self.play_note(4)
+                    self.curr_note = 4
+                elif x < 600:
+                    self.play_note(5)
+                    self.curr_note = 5
+                elif x < 700:
+                    self.play_note(6)
+                    self.curr_note = 6
+                else:
+                    return
+
     def update_volume(self):
-        if self.mouse_y is not None:
+        if self.mouse_y is not None and self.mouse_ui:
             # volume update based on y position
             if self.mouse_y > 350:
                 # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
@@ -423,6 +493,34 @@ class Game:
 
             for channel in range(0, 50):
                 pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+
+        if self.glove_ui:
+            if self.imu_data['RAy'] > 18:
+                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                #self.curr_volume = 1
+                self.curr_frame_volume = 2
+            elif self.imu_data['RAy'] > 5:
+                # self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                #self.curr_volume = 0.25
+                self.curr_frame_volume = 1
+            else:
+                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                self.curr_volume = 0.0
+                self.curr_frame_volume = 0
+            
+            if self.imu_data['RAy'] > 5:
+                self.curr_volume = self.imu_data['RAy'] / 31
+            
+            
+            # for char in self.char_list:
+            #     char.draw(self.display, char.frame)
+            #     self.window.blit(self.display, (0, 0))
+            # pygame.display.update()
+
+            for channel in range(0, 50):
+                pygame.mixer.Channel(channel).set_volume(self.curr_volume)
+            
+
     def check_events(self):
         #checks for which menu to display
         for event in pygame.event.get():
@@ -444,12 +542,18 @@ class Game:
                     self.curr_menu.glove_selected= False
                     self.curr_menu.mouse_selected= True
                     self.curr_menu.initial_buttons= False
+                    self.glove_ui = False
+                    self.mouse_ui = True
                     #Select Mouse UI
                 elif click_x >=405 and click_x<=543 and click_y>=324 and click_y<=370:
                     print("Glove Selected")
                     self.curr_menu.glove_selected= True
                     self.curr_menu.mouse_selected= False
                     self.curr_menu.initial_buttons= False
+                    self.glove_ui = True
+                    self.mouse_ui = False
+                    self.lh.setStatus(1)
+                    self.rh.setStatus(1)
                     #Select Glove UI
 
             
