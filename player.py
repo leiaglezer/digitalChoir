@@ -14,7 +14,7 @@ from spritesheet import Spritesheet
 # B diminished: B – D – F
 
 class Player:
-    def __init__(self):
+    def __init__(self, index):
         # load frames into array
         self.right_selected = None
         self.middle_selected = None
@@ -34,6 +34,11 @@ class Player:
         # flag for all chars selected
         self.ALL_SELECTED = True
 
+        self.current_note = None
+        self.index = index
+        self.volume = 0
+        self.frame_volume = 0
+        self.face = None
 
 
 
@@ -54,11 +59,11 @@ class Player:
             return None
 
     # determines if one or all blobs are selected using gloves
-    def set_selected_blob_glove(self, imu_data, index):
+    def set_selected_blob_glove(self, imu_data):
         x = imu_data['RAx']
 
         # one char selected
-        if x >= index * 10 and x < (index + 1) * 10:
+        if x >= self.index * 10 and x < (self.index + 1) * 10:
             self.IS_SELECTED = True
             self.ALL_SELECTED = False
 
@@ -77,6 +82,28 @@ class Player:
 
     def draw(self, display, frame):
         display.blit(frame, (self.x, self.y))
+
+    def give_note(self, note, sing_note):
+        if self.current_note != note:
+            self.current_note = note
+            sing_note(note, self.index)
+
+    def update_volume(self, sensor, sing_volume):
+        if sensor > 5:
+            self.volume = sensor / 31
+            if sensor > 15:
+                self.frame_volume = 2
+            else:
+                self.frame_volume = 1
+        else:
+            self.volume = 0
+            self.frame_volume = 0
+        sing_volume(self.volume, self.index)
+
+    def update_face(self, value):
+        self.face = value
+        self.frame = self.frame_list[self.face]
+
 
     def load_frames(self):
         my_spritesheet = Spritesheet('image.png')

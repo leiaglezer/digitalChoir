@@ -28,8 +28,20 @@ class Game:
         self.rh = self.gloves[1]
         self.IMU_DATA_EVENT = pygame.USEREVENT + 1
         self.imu_data = {'RAx': 0, 'RAy': 0, 'LAx': 0, 'LAy': 0}
+        self.last_gestures = {'RUP': 0, 'RDOWN': 0, 'LUP': 0, 'LDOWN': 0, 'RRIGHT': 0, 'RLEFT': 0, 'LRIGHT': 0, 'LLEFT': 0}
         self.gestures = []
-        pygame.time.set_timer(self.IMU_DATA_EVENT, 100)
+        pygame.time.set_timer(self.IMU_DATA_EVENT, 200)
+
+        # Score
+        self.song = [(7, 9, 11), (7, 9, 12), (5, 8, 10), (5, 8, 11), (4, 7, 9), (4, 7, 10), (4, 6, 8), (4, 6, 11)]
+        self.note_range = 14
+        self.highest_note = 6
+        self.METRONOME = pygame.USEREVENT + 2
+        self.bpm = 60
+        self.measure = 0
+        self.total_measures = 8
+        self.paused = True
+        pygame.time.set_timer(self.METRONOME, int(1000 * 60 / self.bpm))
 
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
@@ -50,7 +62,7 @@ class Game:
         self.curr_mode = 'Multi Mode'
         self.curr_volume = None
         self.curr_chord = None
-        self.timbre = "timbre2"
+        self.timbre = "osc"
         self.curr_note = None
         self.mouse_x = None
         self.mouse_y = None
@@ -63,13 +75,21 @@ class Game:
 
         #dict of notes at different timbres + corresponding WAV files
         self.notes = {
-            0: {"timbre1": "timbre1A.wav", "timbre2": "timbre2A.wav", "timbre3": "timbre3A.wav"},
-            1: {"timbre1": "timbre1B.wav", "timbre2": "timbre2B.wav", "timbre3": "timbre3B.wav"},
-            2: {"timbre1": "timbre1C.wav", "timbre2": "timbre2C.wav", "timbre3": "timbre3C.wav"},
-            3: {"timbre1": "timbre1D.wav", "timbre2": "timbre2D.wav", "timbre3": "timbre3D.wav"},
-            4: {"timbre1": "timbre1E.wav", "timbre2": "timbre2E.wav", "timbre3": "timbre3E.wav"},
-            5: {"timbre1": "timbre1F.wav", "timbre2": "timbre2F.wav", "timbre3": "timbre3F.wav"},
-            6: {"timbre1": "timbre1G.wav", "timbre2": "timbre2G.wav", "timbre3": "timbre3G.wav"},
+            0: {"timbre1": "timbre1A.wav", "timbre2": "timbre2A.wav", "timbre3": "timbre3A.wav", "osc": "osc/A4.wav"},
+            1: {"timbre1": "timbre1B.wav", "timbre2": "timbre2B.wav", "timbre3": "timbre3B.wav", "osc": "osc/B4.wav"},
+            2: {"timbre1": "timbre1C.wav", "timbre2": "timbre2C.wav", "timbre3": "timbre3C.wav", "osc": "osc/C5.wav"},
+            3: {"timbre1": "timbre1D.wav", "timbre2": "timbre2D.wav", "timbre3": "timbre3D.wav", "osc": "osc/D5.wav"},
+            4: {"timbre1": "timbre1E.wav", "timbre2": "timbre2E.wav", "timbre3": "timbre3E.wav", "osc": "osc/E5.wav"},
+            5: {"timbre1": "timbre1F.wav", "timbre2": "timbre2F.wav", "timbre3": "timbre3F.wav", "osc": "osc/F5.wav"},
+            6: {"timbre1": "timbre1G.wav", "timbre2": "timbre2G.wav", "timbre3": "timbre3G.wav", "osc": "osc/Gs5.wav"},
+            7: {"osc": "osc/A5.wav"},
+            8: {"osc": "osc/B5.wav"},
+            9: {"osc": "osc/C6.wav"},
+            10: {"osc": "osc/D6.wav"},
+            11: {"osc": "osc/E6.wav"},
+            12: {"osc": "osc/F6.wav"},
+            13: {"osc": "osc/Gs6.wav"},
+            14: {"osc": "osc/A6.wav"},
         }
 
         #dict of chords
@@ -85,7 +105,7 @@ class Game:
 
         ######## INITIAL CHARACTER SETUP ##########
         # instantiate three chars
-        self.char_list = [Player(), Player(), Player()]
+        self.char_list = [Player(0), Player(1), Player(2)]
         self.curr_char = None
         self.curr_frame_volume = None
         self.last_frame_volume = None
@@ -132,7 +152,25 @@ class Game:
                     if event.key == pygame.K_x:
                         self.start_or_stop_music()
 
+                if event.type == self.METRONOME:
+                    if not self.paused:
+                        self.play_measure(self.measure)
+                        self.measure += 1
+                        if self.measure >= self.total_measures:
+                            self.measure = 0
+
                 if self.glove_ui and event.type == self.IMU_DATA_EVENT:
+                    self.update_imu()
+
+                    self.read_gestures()
+
+                    self.update_selected_users()
+                    self.update_selected_volume()
+                    self.update_control_mode()
+
+                    self.draw_singers()
+
+                if False and self.glove_ui and event.type == self.IMU_DATA_EVENT:
                     self.update_imu()
                     self.update_volume()
                     self.update_mode()
@@ -171,7 +209,7 @@ class Game:
                             if click_x >=565 and click_x<=575 and click_y>=40 and click_y<=50:
                                 print("Help closed")
                                 self.showhelp = False
-                                # self.start_or_stop_music()gi
+                                # self.start_or_stop_music()
 
                         #changes between single and multimode
                         self.update_mode()
@@ -180,7 +218,7 @@ class Game:
                         self.stop_music()
 
                     # 3. ####### CHORD OR NOTE SELECTION #######
-                    if event.type == pygame.MOUSEMOTION:
+                    if event.type == pygame.MOUSEMOTION and self.mouse_ui:
                         self.update_sprite_frame()
 
                     # if self.glove_ui:
@@ -199,13 +237,13 @@ class Game:
                         # if <<<changes in imu_data['Rax']:
                         #     self.update_sprite_frame()
 
+                    if self.mouse_ui:
+                        # 4. ####### ANIMATION #######
+                        self.draw_sprite()
 
-                    # 4. ####### ANIMATION #######
-                    self.draw_sprite()
-
-                    # 5. ####### MUSIC PLAYING #######
-                    self.update_chord_or_note()
-                    self.update_volume()
+                        # 5. ####### MUSIC PLAYING #######
+                        self.update_chord_or_note()
+                        self.update_volume()
 
 
             # 6. ####### RESET START KEY #######
@@ -257,7 +295,7 @@ class Game:
             if self.mouse_ui:
                 char.set_selected_blob(self.mouse_x, self.mouse_y)
             if self.glove_ui:
-                char.set_selected_blob_glove(self.imu_data, i)
+                char.set_selected_blob_glove(self.imu_data)
                 print(str(i) + " " + str(char.IS_SELECTED))
 
             if char.IS_SELECTED:
@@ -285,6 +323,108 @@ class Game:
         #print(file)
         sound = pygame.mixer.Sound(file)
         pygame.mixer.Channel(channel).play(sound)
+
+    def play_measure(self, measure_num):
+        for i in range(min(len(self.song[measure_num]), len(self.char_list))):
+            self.char_list[i].give_note(self.song[measure_num][i], self.sing_note)
+
+    def sing_note(self, note, channel):
+        file = self.notes[note][self.timbre]
+        sound = pygame.mixer.Sound(file)
+        pygame.mixer.Channel(channel).play(sound)
+
+    def update_selected_users(self):
+        self.index = None
+        for player in self.char_list:
+            player.set_selected_blob_glove(self.imu_data)
+            if player.IS_SELECTED:
+                self.index = player.index
+
+    def update_selected_volume(self):
+        if self.index != None:
+            self.char_list[self.index].update_volume(self.imu_data['RAy'], self.sing_volume)
+        else:
+            for player in self.char_list:
+                player.update_volume(self.imu_data['RAy'], self.sing_volume)
+                
+    def sing_volume(self, volume, channel):
+        pygame.mixer.Channel(channel).set_volume(volume)
+
+    def update_control_mode(self):
+        if self.index == None:
+            self.curr_mode = 'Multi Mode'
+        else:
+            self.curr_mode = 'Single Mode'
+            self.curr_char = self.char_list[self.index]
+
+    def draw_singers(self):
+        if self.paused:
+            for player in self.char_list:
+                player.update_face(0)
+        else:
+            for player in self.char_list:
+                player.update_face(3 * int((self.song[self.measure][player.index] * 6) / 14) + player.frame_volume)
+        
+        if self.curr_mode == 'Multi Mode' or self.paused == True:
+            self.display.blit(pygame.image.load('all.png'), (0, 0))
+        else:
+            if self.index == 0:
+                self.display.blit(pygame.image.load('left.png'), (0, 0))
+            elif self.index == 1:
+                self.display.blit(pygame.image.load('center.png'), (0, 0))
+            else:
+                self.display.blit(pygame.image.load('right.png'), (0, 0))
+
+        for player in self.char_list:
+            player.draw(self.display, player.frame)
+
+        self.draw_icons()
+        self.display_help()
+        self.window.blit(self.display, (0, 0))
+        pygame.display.update()
+        
+    def read_gestures(self):
+        default_gestures = {'RUP': 0, 'RDOWN': 0, 'LUP': 0, 'LDOWN': 0, 'RRIGHT': 0, 'RLEFT': 0, 'LRIGHT': 0, 'LLEFT': 0}
+        new_gestures = default_gestures.copy()
+
+        if len(self.gestures) > 0:
+            i = 0
+            
+            while i < len(self.gestures):
+                new_gestures[self.gestures[i]] += 1
+                self.last_gestures[self.gestures[i]] += 1
+                i += 1
+            
+            self.gestures.clear()
+            if self.last_gestures["LUP"] > 0 and self.last_gestures["RUP"] > 0:
+                print("UP")
+                new_gestures = default_gestures
+                self.unpause_music()
+            if self.last_gestures["LDOWN"] > 0 and self.last_gestures["RDOWN"] > 0:
+                print("DOWN")
+                new_gestures = default_gestures
+                self.pause_music()
+
+            if self.last_gestures["LLEFT"] > 0 and self.last_gestures["RRIGHT"] > 0:
+                print("OUT")
+                new_gestures = default_gestures
+            if self.last_gestures["LRIGHT"] > 0 and self.last_gestures["RLEFT"] > 0:
+                print("IN")
+                new_gestures = default_gestures
+                
+        
+        self.last_gestures = new_gestures.copy()
+
+    def pause_music(self):
+        self.paused = True
+        for channel in range(0, 50):
+            pygame.mixer.Channel(channel).pause()
+
+    def unpause_music(self):
+        self.paused = False
+        for channel in range(0, 50):
+            pygame.mixer.Channel(channel).unpause()
+
 
     def update_sprite_frame(self):
         #updates sprite's current frame based on multi or single mode
