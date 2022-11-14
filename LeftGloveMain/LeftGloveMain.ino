@@ -329,16 +329,16 @@ void onIMUdata() {
   }
 
   int numGestInc = 0;
-  if (fc > 0) {
+  if (fc > 2) {
     numGestInc++;
   }
-  if (bc > 0) {
+  if (bc > 2) {
     numGestInc++;
   }
-  if (rc > 0) {
+  if (rc > 2) {
     numGestInc++;
   }
-  if (lc > 0) {
+  if (lc > 2) {
     numGestInc++;
   }
   if (numGestInc > 1) {

@@ -4,7 +4,7 @@ import platform
 from datetime import datetime
 from typing import Callable, Any, List
 from aioconsole import ainput
-from bleak import BleakClient, discover
+from bleak import BleakClient, BleakScanner
 import threading
 
 
@@ -110,7 +110,7 @@ class Connection:
     async def select_device(self):
         print("Bluetooh LE hardware warming up...")
         await asyncio.sleep(2.0) # Wait for BLE to initialize.
-        devices = await discover()
+        devices = await BleakScanner.discover()
 
         response = -1
         for i, device in enumerate(devices):

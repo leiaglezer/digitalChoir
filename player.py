@@ -106,7 +106,7 @@ class Player:
 
 
     def load_frames(self):
-        my_spritesheet = Spritesheet('image.png')
+        my_spritesheet = Spritesheet('images/image.png')
 
         self.frame_list = [my_spritesheet.parse_sprite("image0.png"),
                            my_spritesheet.parse_sprite("image1.png"),

@@ -19,17 +19,17 @@ class Menu():
     
     def draw_buttons(self):
         if self.initial_buttons:
-            self.game.display.blit(pygame.image.load('mouse-button.png'), (170, 320))
-            self.game.display.blit(pygame.image.load('glove-button.png'), (405, 320))
+            self.game.display.blit(pygame.image.load('images/mouse-button.png'), (170, 320))
+            self.game.display.blit(pygame.image.load('images/glove-button.png'), (405, 320))
         if self.mouse_selected:
-            self.game.display.blit(pygame.image.load('mouse-selected-button.png'), (170, 320))
-            self.game.display.blit(pygame.image.load('glove-button.png'), (405, 320))
-            self.game.display.blit(pygame.image.load('enter-message.png'), (158, 405))
+            self.game.display.blit(pygame.image.load('images/mouse-selected-button.png'), (170, 320))
+            self.game.display.blit(pygame.image.load('images/glove-button.png'), (405, 320))
+            self.game.display.blit(pygame.image.load('images/enter-message.png'), (158, 405))
 
         if self.glove_selected:
-            self.game.display.blit(pygame.image.load('mouse-button.png'), (170, 320))
-            self.game.display.blit(pygame.image.load('glove-selected-button.png'), (405, 320))
-            self.game.display.blit(pygame.image.load('glove-message.png'), (158, 405))
+            self.game.display.blit(pygame.image.load('images/mouse-button.png'), (170, 320))
+            self.game.display.blit(pygame.image.load('images/glove-selected-button.png'), (405, 320))
+            self.game.display.blit(pygame.image.load('images/glove-message.png'), (158, 405))
 
         
 
@@ -52,7 +52,7 @@ class MainMenu(Menu):
             #set Surface to black to reset it
             self.game.display.fill(self.game.BLACK)
             #draw background image
-            self.game.display.blit(pygame.image.load('splash.png'), (0, 0))
+            self.game.display.blit(pygame.image.load('images/splash.png'), (0, 0))
             self.draw_buttons()
 
  

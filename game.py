@@ -12,7 +12,7 @@ class Game:
         #turn game on
         pygame.init()
         # background image
-        self.background = pygame.image.load('splash.png')
+        self.background = pygame.image.load('images/splash.png')
         self.showhelp = False
         # canvas size
         self.DISPLAY_W, self.DISPLAY_H = self.background.get_width(), self.background.get_height()
@@ -67,21 +67,23 @@ class Game:
         self.mouse_x = None
         self.mouse_y = None
         self.play_music = True
+        self.drums_vol = 0
 
         ######## MUSIC SETUP ##########
         # setup music player
         mixer.init()
         pygame.mixer.set_num_channels(50)
+        pygame.mixer.Channel(45).set_volume(self.drums_vol)
 
         #dict of notes at different timbres + corresponding WAV files
         self.notes = {
-            0: {"timbre1": "timbre1A.wav", "timbre2": "timbre2A.wav", "timbre3": "timbre3A.wav", "osc": "osc/A4.wav"},
-            1: {"timbre1": "timbre1B.wav", "timbre2": "timbre2B.wav", "timbre3": "timbre3B.wav", "osc": "osc/B4.wav"},
-            2: {"timbre1": "timbre1C.wav", "timbre2": "timbre2C.wav", "timbre3": "timbre3C.wav", "osc": "osc/C5.wav"},
-            3: {"timbre1": "timbre1D.wav", "timbre2": "timbre2D.wav", "timbre3": "timbre3D.wav", "osc": "osc/D5.wav"},
-            4: {"timbre1": "timbre1E.wav", "timbre2": "timbre2E.wav", "timbre3": "timbre3E.wav", "osc": "osc/E5.wav"},
-            5: {"timbre1": "timbre1F.wav", "timbre2": "timbre2F.wav", "timbre3": "timbre3F.wav", "osc": "osc/F5.wav"},
-            6: {"timbre1": "timbre1G.wav", "timbre2": "timbre2G.wav", "timbre3": "timbre3G.wav", "osc": "osc/Gs5.wav"},
+            0: {"timbre1": "notes/timbre1A.wav", "timbre2": "notes/timbre2A.wav", "timbre3": "notes/timbre3A.wav", "osc": "osc/A4.wav"},
+            1: {"timbre1": "notes/timbre1B.wav", "timbre2": "notes/timbre2B.wav", "timbre3": "notes/timbre3B.wav", "osc": "osc/B4.wav"},
+            2: {"timbre1": "notes/timbre1C.wav", "timbre2": "notes/timbre2C.wav", "timbre3": "notes/timbre3C.wav", "osc": "osc/C5.wav"},
+            3: {"timbre1": "notes/timbre1D.wav", "timbre2": "notes/timbre2D.wav", "timbre3": "notes/timbre3D.wav", "osc": "osc/D5.wav"},
+            4: {"timbre1": "notes/timbre1E.wav", "timbre2": "notes/timbre2E.wav", "timbre3": "notes/timbre3E.wav", "osc": "osc/E5.wav"},
+            5: {"timbre1": "notes/timbre1F.wav", "timbre2": "notes/timbre2F.wav", "timbre3": "notes/timbre3F.wav", "osc": "osc/F5.wav"},
+            6: {"timbre1": "notes/timbre1G.wav", "timbre2": "notes/timbre2G.wav", "timbre3": "notes/timbre3G.wav", "osc": "osc/Gs5.wav"},
             7: {"osc": "osc/A5.wav"},
             8: {"osc": "osc/B5.wav"},
             9: {"osc": "osc/C6.wav"},
@@ -132,7 +134,7 @@ class Game:
             for event in pygame.event.get():
                 # 1. ####### GAME SETUP #######
                 # reset background so you get a white screen
-                self.display.blit(pygame.image.load('center.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/center.png'), (0, 0))
 
                 #get fresh mouse coordinates
                 self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
@@ -154,6 +156,8 @@ class Game:
 
                 if event.type == self.METRONOME:
                     if not self.paused:
+                        if self.measure == 0:
+                            self.play_drums("toxic")
                         self.play_measure(self.measure)
                         self.measure += 1
                         if self.measure >= self.total_measures:
@@ -164,9 +168,10 @@ class Game:
 
                     self.read_gestures()
 
-                    self.update_selected_users()
-                    self.update_selected_volume()
-                    self.update_control_mode()
+                    if self.accepting_controls():
+                        self.update_selected_users()
+                        self.update_selected_volume()
+                        self.update_control_mode()
 
                     self.draw_singers()
 
@@ -333,6 +338,14 @@ class Game:
         sound = pygame.mixer.Sound(file)
         pygame.mixer.Channel(channel).play(sound)
 
+    def play_drums(self, drums):
+        file = "drums/" + drums + ".wav"
+        sound = pygame.mixer.Sound(file)
+        pygame.mixer.Channel(45).play(sound)
+
+    def set_drums_vol(self, volume):
+        pygame.mixer.Channel(45).set_volume(volume)
+
     def update_selected_users(self):
         self.index = None
         for player in self.char_list:
@@ -366,14 +379,14 @@ class Game:
                 player.update_face(3 * int((self.song[self.measure][player.index] * 6) / 14) + player.frame_volume)
         
         if self.curr_mode == 'Multi Mode' or self.paused == True:
-            self.display.blit(pygame.image.load('all.png'), (0, 0))
+            self.display.blit(pygame.image.load('images/all.png'), (0, 0))
         else:
             if self.index == 0:
-                self.display.blit(pygame.image.load('left.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/left.png'), (0, 0))
             elif self.index == 1:
-                self.display.blit(pygame.image.load('center.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/center.png'), (0, 0))
             else:
-                self.display.blit(pygame.image.load('right.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/right.png'), (0, 0))
 
         for player in self.char_list:
             player.draw(self.display, player.frame)
@@ -405,6 +418,10 @@ class Game:
                 new_gestures = default_gestures
                 self.pause_music()
 
+            if self.last_gestures["RUP"] > 0 and self.last_gestures["RDOWN"] > 0:
+                self.drums_vol = 0.7
+                self.set_drums_vol(self.drums_vol)
+
             if self.last_gestures["LLEFT"] > 0 and self.last_gestures["RRIGHT"] > 0:
                 print("OUT")
                 new_gestures = default_gestures
@@ -425,6 +442,9 @@ class Game:
         for channel in range(0, 50):
             pygame.mixer.Channel(channel).unpause()
 
+    def accepting_controls(self):
+        return self.imu_data['LAy'] > 8
+
 
     def update_sprite_frame(self):
         #updates sprite's current frame based on multi or single mode
@@ -442,7 +462,7 @@ class Game:
         if self.curr_mode == 'Multi Mode':
                       # volume update based on y position
 
-            self.display.blit(pygame.image.load('all.png'), (0, 0))
+            self.display.blit(pygame.image.load('images/all.png'), (0, 0))
             for char in self.char_list:
                 char.draw(self.display, char.frame)
 
@@ -450,11 +470,11 @@ class Game:
         else:
             # draw correct spotlight background depending on char's index in char_list
             if self.index == 0:
-                self.display.blit(pygame.image.load('left.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/left.png'), (0, 0))
             elif self.index == 1:
-                self.display.blit(pygame.image.load('center.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/center.png'), (0, 0))
             else:
-                self.display.blit(pygame.image.load('right.png'), (0, 0))
+                self.display.blit(pygame.image.load('images/right.png'), (0, 0))
 
             # update frame for selected char
             # display "closed mouth" frame for chars that aren't currently selected
@@ -471,7 +491,7 @@ class Game:
 
     def display_help(self):
         if self.showhelp==True:
-            helpscreen = pygame.image.load('help-stage.png')
+            helpscreen = pygame.image.load('images/help-stage.png')
             helpscreen = pygame.transform.scale(helpscreen, (690,435))
             self.display.blit(helpscreen, (0,0))
         
@@ -479,19 +499,19 @@ class Game:
 
     def draw_volume(self):
         # if self.curr_volume == 0:
-        #     self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        #     self.display.blit(pygame.image.load('images/volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
         # elif self.curr_volume == 0.5:
-        #     self.display.blit(pygame.image.load('volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        #     self.display.blit(pygame.image.load('images/volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
         # elif self.curr_volume == 1.0:
-        #     self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        #     self.display.blit(pygame.image.load('images/volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
         # else:
-        #     self.display.blit(pygame.image.load('volume1.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+        #     self.display.blit(pygame.image.load('images/volume1.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
         return
 
     def draw_icons(self):
         self.draw_volume()
-        self.display.blit(pygame.image.load('backbutton.png'), (10,10))
-        self.display.blit(pygame.image.load('help.png'), (self.DISPLAY_W- 40,15))
+        self.display.blit(pygame.image.load('images/backbutton.png'), (10,10))
+        self.display.blit(pygame.image.load('images/help.png'), (self.DISPLAY_W- 40,15))
 
 
 
@@ -609,19 +629,19 @@ class Game:
         if self.mouse_y is not None and self.mouse_ui:
             # volume update based on y position
             if self.mouse_y > 350:
-                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0
                 self.curr_frame_volume = 0
             elif (self.mouse_y < 350) & (self.mouse_y > 200):
-                # self.display.blit(pygame.image.load('volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume2.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0.5
                 self.curr_frame_volume = 1
             elif self.mouse_y < 200:
-                # self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 1.0
                 self.curr_frame_volume = 2
             else:
-                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0.0
                 self.curr_frame_volume = 0
             
@@ -636,15 +656,15 @@ class Game:
 
         if self.glove_ui:
             if self.imu_data['RAy'] > 18:
-                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 #self.curr_volume = 1
                 self.curr_frame_volume = 2
             elif self.imu_data['RAy'] > 5:
-                # self.display.blit(pygame.image.load('volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume3.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 #self.curr_volume = 0.25
                 self.curr_frame_volume = 1
             else:
-                # self.display.blit(pygame.image.load('volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
+                # self.display.blit(pygame.image.load('images/volume0.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
                 self.curr_volume = 0.0
                 self.curr_frame_volume = 0
             
