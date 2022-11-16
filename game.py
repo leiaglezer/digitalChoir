@@ -31,6 +31,8 @@ class Game:
         self.last_gestures = {'RUP': 0, 'RDOWN': 0, 'LUP': 0, 'LDOWN': 0, 'RRIGHT': 0, 'RLEFT': 0, 'LRIGHT': 0, 'LLEFT': 0}
         self.gestures = []
         pygame.time.set_timer(self.IMU_DATA_EVENT, 200)
+        self.SOLO_MODE_EVENT = pygame.USEREVENT + 3
+        pygame.time.set_timer(self.SOLO_MODE_EVENT, 100)
 
         # Score
         self.song = [(7, 9, 11), (7, 9, 12), (5, 8, 10), (5, 8, 11), (4, 7, 9), (4, 7, 10), (4, 6, 8), (4, 6, 11)]
@@ -41,6 +43,7 @@ class Game:
         self.measure = 0
         self.total_measures = 8
         self.paused = True
+        self.pitch_modifiers = [0, 0, 0]
         pygame.time.set_timer(self.METRONOME, int(1000 * 60 / self.bpm))
 
         # window to show up on screen
@@ -63,11 +66,15 @@ class Game:
         self.curr_volume = None
         self.curr_chord = None
         self.timbre = "osc"
+        self.solo_timbre = "osc"
         self.curr_note = None
         self.mouse_x = None
         self.mouse_y = None
         self.play_music = True
         self.drums_vol = 0
+        self.solo_mode = False
+        self.solo_channel = 3
+        self.solo_fade_time = 100
 
         ######## MUSIC SETUP ##########
         # setup music player
@@ -108,6 +115,7 @@ class Game:
         ######## INITIAL CHARACTER SETUP ##########
         # instantiate three chars
         self.char_list = [Player(0), Player(1), Player(2)]
+        self.solo_singer = Player(3)
         self.curr_char = None
         self.curr_frame_volume = None
         self.last_frame_volume = None
@@ -168,12 +176,20 @@ class Game:
 
                     self.read_gestures()
 
-                    if self.accepting_controls():
+                    if self.accepting_controls() and not self.solo_mode:
                         self.update_selected_users()
                         self.update_selected_volume()
                         self.update_control_mode()
 
                     self.draw_singers()
+
+                if self.glove_ui and event.type == self.SOLO_MODE_EVENT:
+                    if self.solo_mode:
+                        self.update_imu()
+                        self.play_solo()
+                    else:
+                        self.stop_solo()
+                    
 
                 if False and self.glove_ui and event.type == self.IMU_DATA_EVENT:
                     self.update_imu()
@@ -334,7 +350,7 @@ class Game:
             self.char_list[i].give_note(self.song[measure_num][i], self.sing_note)
 
     def sing_note(self, note, channel):
-        file = self.notes[note][self.timbre]
+        file = self.notes[(note + self.pitch_modifiers[channel]) % self.highest_note][self.timbre]
         sound = pygame.mixer.Sound(file)
         pygame.mixer.Channel(channel).play(sound)
 
@@ -390,6 +406,8 @@ class Game:
 
         for player in self.char_list:
             player.draw(self.display, player.frame)
+        
+        self.draw_singer_volumes()
 
         self.draw_icons()
         self.display_help()
@@ -418,16 +436,29 @@ class Game:
                 new_gestures = default_gestures
                 self.pause_music()
 
-            if self.last_gestures["RUP"] > 0 and self.last_gestures["RDOWN"] > 0:
-                self.drums_vol = 0.7
-                self.set_drums_vol(self.drums_vol)
-
             if self.last_gestures["LLEFT"] > 0 and self.last_gestures["RRIGHT"] > 0:
                 print("OUT")
+                self.solo_mode = True
                 new_gestures = default_gestures
-            if self.last_gestures["LRIGHT"] > 0 and self.last_gestures["RLEFT"] > 0:
+            elif self.last_gestures["LRIGHT"] > 0 and self.last_gestures["RLEFT"] > 0:
                 print("IN")
+                self.solo_mode = False
                 new_gestures = default_gestures
+            elif self.last_gestures["RUP"] > 0 and self.last_gestures["RDOWN"] > 0:
+                if self.drums_vol == 0:
+                    self.drums_vol = 0.5
+                    self.set_drums_vol(self.drums_vol)
+                else:
+                    self.drums_vol = 0.0
+                    self.set_drums_vol(self.drums_vol)
+            elif self.last_gestures["LRIGHT"] > 0:
+                if not self.paused and self.index != None:
+                    self.pitch_modifiers[self.index] += 1
+                print(self.pitch_modifiers)
+            elif self.last_gestures["LLEFT"] > 0:
+                if not self.paused and self.index != None:
+                    self.pitch_modifiers[self.index] -= 1
+                print(self.pitch_modifiers)
                 
         
         self.last_gestures = new_gestures.copy()
@@ -443,8 +474,7 @@ class Game:
             pygame.mixer.Channel(channel).unpause()
 
     def accepting_controls(self):
-        return self.imu_data['LAy'] > 8
-
+        return self.imu_data['LAy'] > 8 and not self.paused
 
     def update_sprite_frame(self):
         #updates sprite's current frame based on multi or single mode
@@ -508,12 +538,73 @@ class Game:
         #     self.display.blit(pygame.image.load('images/volume1.png'), (self.DISPLAY_W/2 - 20,self.DISPLAY_H/7))
         return
 
+    def draw_singer_volumes(self):
+        for i in range(3):
+            x = (self.DISPLAY_W / 2) - 25 + ((i - 1) * 155)
+            y = self.DISPLAY_H / 7
+            volume = self.char_list[i].volume
+
+            if volume == 0 or self.paused:
+                self.display.blit(pygame.image.load('images/volume0.png'), (x, y))
+            elif volume > 0.8:
+                self.display.blit(pygame.image.load('images/volume3.png'), (x, y))
+            elif volume > 0.5:
+                self.display.blit(pygame.image.load('images/volume2.png'), (x, y))
+            else:
+                self.display.blit(pygame.image.load('images/volume1.png'), (x, y))
+
+    def play_solo(self):
+        for player in self.char_list:
+            player.volume = 0.2
+            pygame.mixer.Channel(player.index).set_volume(0.2)
+        
+        initial_volume_data = self.imu_data['RAy']
+        volume_modifier_data = self.imu_data['LAy']
+
+        pitch = int(0.0 + self.imu_data['RAx'] * 14.0 / 31.0)
+        fx = self.imu_data['LAx']
+
+        if fx >= 20:
+            self.solo_fade_time = (fx * 10) - 50
+        else:
+            self.solo_fade_time = 50 + (fx * 5)
+
+        pygame.mixer.Channel(self.solo_channel).set_volume(self.convert_volume(initial_volume_data, volume_modifier_data))
+
+        if pitch != self.solo_singer.current_note:
+            pygame.mixer.Channel(self.solo_channel).fadeout(self.solo_fade_time)
+            if self.solo_channel == 20:
+                self.solo_channel = 3
+            else:
+                self.solo_channel += 1
+
+            self.solo_singer.current_note = pitch
+            file = self.notes[pitch][self.solo_timbre]
+            sound = pygame.mixer.Sound(file)
+            pygame.mixer.Channel(self.solo_channel).play(sound, fade_ms=self.solo_fade_time)
+
+    def convert_volume(self, vol, mod):
+        return vol / 31
+
+        vol = vol / 31
+        mod -= 15 # -15 - 16
+        vol = vol + (2 * mod)
+        if vol > 31:
+            vol = 31
+        if vol < 0:
+            vol = 0
+        return vol
+
+    def stop_solo(self):
+        self.solo_singer.current_note = None
+        self.solo_singer.volume = 0
+        for i in range(3, 20):
+            pygame.mixer.Channel(i).fadeout(100)
+
     def draw_icons(self):
         self.draw_volume()
         self.display.blit(pygame.image.load('images/backbutton.png'), (10,10))
         self.display.blit(pygame.image.load('images/help.png'), (self.DISPLAY_W- 40,15))
-
-
 
         
 
