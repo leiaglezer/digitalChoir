@@ -83,6 +83,21 @@ class Player:
     def draw(self, display, frame):
         display.blit(frame, (self.x, self.y))
 
+    def draw_solo(self, display):
+        x = self.x
+        y = self.y
+        clarinet = pygame.image.load('images/clarinet.png')
+        display.blit(self.frame_list[3 * int((self.current_note * 6) / 14) + int(self.volume * 2)], (x, y))
+        angle = -90 + ((self.current_note - 7) * 5)
+        self.blitRotateCenter(display, clarinet, (x + 15, y - (angle + 90)), angle)
+
+    def blitRotateCenter(self, surf, image, topleft, angle):
+        rotated_image = pygame.transform.rotate(image, angle)
+        new_rect = rotated_image.get_rect(center = image.get_rect(topleft = topleft).center)
+
+        surf.blit(rotated_image, new_rect)
+        
+
     def give_note(self, note, sing_note):
         if self.current_note != note:
             self.current_note = note

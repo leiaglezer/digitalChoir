@@ -116,6 +116,7 @@ class Game:
         # instantiate three chars
         self.char_list = [Player(0), Player(1), Player(2)]
         self.solo_singer = Player(3)
+        self.drummer = Player(45)
         self.curr_char = None
         self.curr_frame_volume = None
         self.last_frame_volume = None
@@ -350,7 +351,7 @@ class Game:
             self.char_list[i].give_note(self.song[measure_num][i], self.sing_note)
 
     def sing_note(self, note, channel):
-        file = self.notes[(note + self.pitch_modifiers[channel]) % self.highest_note][self.timbre]
+        file = self.notes[(note + self.pitch_modifiers[channel]) % (self.note_range + 1)][self.timbre]
         sound = pygame.mixer.Sound(file)
         pygame.mixer.Channel(channel).play(sound)
 
@@ -408,6 +409,9 @@ class Game:
             player.draw(self.display, player.frame)
         
         self.draw_singer_volumes()
+        self.draw_singer_pitch()
+        self.draw_solo_singer()
+        self.draw_drummer()
 
         self.draw_icons()
         self.display_help()
@@ -540,8 +544,8 @@ class Game:
 
     def draw_singer_volumes(self):
         for i in range(3):
-            x = (self.DISPLAY_W / 2) - 25 + ((i - 1) * 155)
-            y = self.DISPLAY_H / 7
+            x = (self.DISPLAY_W / 2) - 25 + ((i - 1) * 160)
+            y = (self.DISPLAY_H / 7)
             volume = self.char_list[i].volume
 
             if volume == 0 or self.paused:
@@ -553,9 +557,32 @@ class Game:
             else:
                 self.display.blit(pygame.image.load('images/volume1.png'), (x, y))
 
+    def draw_singer_pitch(self):
+        for i in range(3):
+            x = (self.DISPLAY_W / 2) - 25 + ((i - 1) * 160)
+            y = int(4.5 * (self.DISPLAY_H / 7))
+            pitch = self.pitch_modifiers[i] % (self.note_range + 1) # 0 - 14, 0 = 7 = 14
+            if pitch > 7:
+                pitch -= 14
+            pitch_image = pygame.image.load('pitch-icons/pitch' + str(pitch) + '.png')
+            pitch_image = pygame.transform.scale(pitch_image, (50, 50))
+            self.display.blit(pitch_image, (x, y))
+
+    def draw_solo_singer(self):
+        if self.solo_singer.current_note == None:
+            self.solo_singer.current_note = 0
+        if self.solo_singer.volume == None:
+            self.solo_singer.volume = 0
+        self.solo_singer.x = (self.DISPLAY_W / 8.3)
+        self.solo_singer.y = 2.9 * (self.DISPLAY_W / 7)
+        self.solo_singer.draw_solo(self.display)
+
+    def draw_drummer(self):
+        return
+
     def play_solo(self):
         for player in self.char_list:
-            player.volume = 0.2
+            player.volume = 0.3
             pygame.mixer.Channel(player.index).set_volume(0.2)
         
         initial_volume_data = self.imu_data['RAy']
@@ -569,7 +596,8 @@ class Game:
         else:
             self.solo_fade_time = 50 + (fx * 5)
 
-        pygame.mixer.Channel(self.solo_channel).set_volume(self.convert_volume(initial_volume_data, volume_modifier_data))
+        self.solo_singer.volume = self.convert_volume(initial_volume_data, volume_modifier_data)
+        pygame.mixer.Channel(self.solo_channel).set_volume(self.solo_singer.volume)
 
         if pitch != self.solo_singer.current_note:
             pygame.mixer.Channel(self.solo_channel).fadeout(self.solo_fade_time)
