@@ -36,15 +36,22 @@ class Game:
 
         # Score
         self.song = [(7, 9, 11), (7, 9, 12), (5, 8, 10), (5, 8, 11), (4, 7, 9), (4, 7, 10), (4, 6, 8), (4, 6, 11)]
+        self.drums = [[0] * 3 for _ in range(16)]
+        self.looped_hit_beats = [[0, 0]]
+        self.drum_loop = 0
+        self.selected_drum = [0, 0]
+        self.tick = 0
         self.note_range = 14
         self.highest_note = 6
         self.METRONOME = pygame.USEREVENT + 2
+        self.DRUMS = pygame.USEREVENT + 4
         self.bpm = 60
         self.measure = 0
         self.total_measures = 8
         self.paused = True
         self.pitch_modifiers = [0, 0, 0]
         pygame.time.set_timer(self.METRONOME, int(1000 * 60 / self.bpm))
+        pygame.time.set_timer(self.DRUMS, int(1000 * 60 / (2 * self.bpm)))
 
         # window to show up on screen
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
@@ -75,6 +82,7 @@ class Game:
         self.solo_mode = False
         self.solo_channel = 3
         self.solo_fade_time = 100
+        self.drum_mode = False
 
         ######## MUSIC SETUP ##########
         # setup music player
@@ -136,6 +144,7 @@ class Game:
         # width/height each frame (all the same size, so can grab any image)
         self.width = self.char_list[0].frame_list[0].get_width()
         self.height = self.char_list[0].frame_list[0].get_height()
+        
 
     def game_loop(self):
         # only plays when player is IN game
@@ -166,7 +175,11 @@ class Game:
                 if event.type == self.METRONOME:
                     if not self.paused:
                         if self.measure == 0:
-                            self.play_drums("toxic")
+                            self.tick = 0
+                            if self.drum_loop == 1:
+                                self.play_drums("lofi-1")
+                            elif self.drum_loop == 2:
+                                self.play_drums("lofi-2")
                         self.play_measure(self.measure)
                         self.measure += 1
                         if self.measure >= self.total_measures:
@@ -177,7 +190,7 @@ class Game:
 
                     self.read_gestures()
 
-                    if self.accepting_controls() and not self.solo_mode:
+                    if self.accepting_controls() and not self.solo_mode and not self.drum_mode:
                         self.update_selected_users()
                         self.update_selected_volume()
                         self.update_control_mode()
@@ -190,6 +203,18 @@ class Game:
                         self.play_solo()
                     else:
                         self.stop_solo()
+                    self.update_selected_drum() # Here for lower latency
+
+                if self.glove_ui and event.type == self.DRUMS:
+                    self.play_drum_tick()
+
+                    if self.drum_mode == True:
+                        # Updating drum points happens in solo mode to lower latency
+                        self.draw_drum_editor()
+
+                    self.tick += 1
+                    if self.tick >= 16:
+                        self.tick = 0
                     
 
                 if False and self.glove_ui and event.type == self.IMU_DATA_EVENT:
@@ -285,6 +310,7 @@ class Game:
         print("RX: " + str(self.imu_data['RAx']) + " RY: " + str(self.imu_data['RAy']))
         print("LX: " + str(self.imu_data['LAx']) + " LY: " + str(self.imu_data['LAy']))
         print(self.gestures)
+        print(self.pitch_modifiers)
 
     def start_or_stop_music(self):
         if self.play_music:
@@ -398,7 +424,11 @@ class Game:
         if self.curr_mode == 'Multi Mode' or self.paused == True:
             self.display.blit(pygame.image.load('images/all.png'), (0, 0))
         else:
-            if self.index == 0:
+            if self.solo_mode:
+                self.display.blit(pygame.image.load('images/bottomleft.png'), (0, 0))
+            elif self.drum_mode:
+                self.display.blit(pygame.image.load('images/bottomright.png'), (0, 0))
+            elif self.index == 0:
                 self.display.blit(pygame.image.load('images/left.png'), (0, 0))
             elif self.index == 1:
                 self.display.blit(pygame.image.load('images/center.png'), (0, 0))
@@ -412,6 +442,9 @@ class Game:
         self.draw_singer_pitch()
         self.draw_solo_singer()
         self.draw_drummer()
+
+        if self.drum_mode:
+            self.draw_drum_editor()
 
         self.draw_icons()
         self.display_help()
@@ -435,34 +468,43 @@ class Game:
                 print("UP")
                 new_gestures = default_gestures
                 self.unpause_music()
-            if self.last_gestures["LDOWN"] > 0 and self.last_gestures["RDOWN"] > 0:
+            elif self.last_gestures["LDOWN"] > 0 and self.last_gestures["RDOWN"] > 0:
                 print("DOWN")
                 new_gestures = default_gestures
                 self.pause_music()
 
-            if self.last_gestures["LLEFT"] > 0 and self.last_gestures["RRIGHT"] > 0:
+            elif self.last_gestures["LLEFT"] > 0 and self.last_gestures["RRIGHT"] > 0:
                 print("OUT")
                 self.solo_mode = True
+                self.drum_mode = False
                 new_gestures = default_gestures
             elif self.last_gestures["LRIGHT"] > 0 and self.last_gestures["RLEFT"] > 0:
                 print("IN")
                 self.solo_mode = False
                 new_gestures = default_gestures
+
+            elif self.last_gestures["LUP"] > 0 and self.last_gestures["RRIGHT"] > 0:
+                self.start_drums()
+            elif self.last_gestures["LDOWN"] > 0 and self.last_gestures["RLEFT"] > 0:
+                self.stop_drums()
             elif self.last_gestures["RUP"] > 0 and self.last_gestures["RDOWN"] > 0:
-                if self.drums_vol == 0:
+                self.drum_loop += 1
+                if self.drum_loop > 2:
+                    self.drum_loop = 0
+                if self.drum_loop != 0:
                     self.drums_vol = 0.5
                     self.set_drums_vol(self.drums_vol)
                 else:
                     self.drums_vol = 0.0
                     self.set_drums_vol(self.drums_vol)
-            elif self.last_gestures["LRIGHT"] > 0:
+            elif not self.drum_mode and self.last_gestures["LRIGHT"] > 0:
                 if not self.paused and self.index != None:
                     self.pitch_modifiers[self.index] += 1
-                print(self.pitch_modifiers)
-            elif self.last_gestures["LLEFT"] > 0:
+            elif not self.drum_mode and self.last_gestures["LLEFT"] > 0:
                 if not self.paused and self.index != None:
                     self.pitch_modifiers[self.index] -= 1
-                print(self.pitch_modifiers)
+            elif self.drum_mode and (self.last_gestures["LRIGHT"] > 0 or self.last_gestures["LLEFT"] > 0):
+                self.drums[self.selected_drum[0]][self.selected_drum[1]] = 1 - self.drums[self.selected_drum[0]][self.selected_drum[1]]
                 
         
         self.last_gestures = new_gestures.copy()
@@ -563,7 +605,7 @@ class Game:
             y = int(4.5 * (self.DISPLAY_H / 7))
             pitch = self.pitch_modifiers[i] % (self.note_range + 1) # 0 - 14, 0 = 7 = 14
             if pitch > 7:
-                pitch -= 14
+                pitch -= 15
             pitch_image = pygame.image.load('pitch-icons/pitch' + str(pitch) + '.png')
             pitch_image = pygame.transform.scale(pitch_image, (50, 50))
             self.display.blit(pitch_image, (x, y))
@@ -573,17 +615,123 @@ class Game:
             self.solo_singer.current_note = 0
         if self.solo_singer.volume == None:
             self.solo_singer.volume = 0
-        self.solo_singer.x = (self.DISPLAY_W / 8.3)
-        self.solo_singer.y = 2.9 * (self.DISPLAY_W / 7)
+        self.solo_singer.x = (self.DISPLAY_W / 8.3) - 20
+        self.solo_singer.y = (2.9 * (self.DISPLAY_W / 7)) + 10
         self.solo_singer.draw_solo(self.display)
 
+
+    def start_drums(self):
+        self.drum_mode = True
+        pygame.mixer.Channel(40).set_volume(0.8)
+        pygame.mixer.Channel(41).set_volume(0.8)
+        pygame.mixer.Channel(42).set_volume(0.8)
+
+    def stop_drums(self):
+        self.drum_mode = False
+
+    def play_drum_tick(self):
+        if self.drums[self.tick][0] == 1:
+            file = "drums/kick.wav"
+            sound = pygame.mixer.Sound(file)
+            pygame.mixer.Channel(40).play(sound)
+        if self.drums[self.tick][1] == 1:
+            file = "drums/snare.wav"
+            sound = pygame.mixer.Sound(file)
+            pygame.mixer.Channel(41).play(sound)
+        if self.drums[self.tick][2] == 1:
+            file = "drums/hihat.wav"
+            sound = pygame.mixer.Sound(file)
+            pygame.mixer.Channel(42).play(sound)
+
+
+    def update_selected_drum(self):
+        self.selected_drum[0] = int(15 * self.imu_data['RAx'] / 31)
+        
+        if self.imu_data['RAy'] > 21:
+            self.selected_drum[1] = 0
+        elif self.imu_data['RAy'] > 10:
+            self.selected_drum[1] = 1
+        else:
+            self.selected_drum[1] = 2
+    
+    def draw_drum_editor(self):
+        x = 40
+        y = self.DISPLAY_H / 3
+        dy = 35
+
+        panel = pygame.image.load('images/glass_panel.png')
+        panel = pygame.transform.scale(panel, (self.DISPLAY_W * 0.95, 200))
+        self.display.blit(panel, (x - 40, y - 40))
+
+        for i in range(3):
+            for j in range(16 + 1):
+                if j == 0:
+                    self.draw_drum_icon(i, x, y, dy)
+                else:
+                    if j <= 4 or (j > 8 and j <= 12):
+                        self.draw_drum_tick(j - 1, i, "grey", (x, y, dy))
+                    else:
+                        self.draw_drum_tick(j - 1, i, "red", (x, y, dy))
+
+    def draw_drum_tick(self, x, y, color, xydy):
+        on = "off"
+        if self.drums[x][y] == 1:
+            on = "on"
+        if self.selected_drum[0] == x and self.selected_drum[1] == y:
+            on = "on"
+            color = "yellow"
+        elif x == self.tick:
+            on = "off"
+            color = "yellow"
+        image = pygame.image.load('drum-icons/' + color + '-' + on + '.png')
+        image = pygame.transform.scale(image, (30, 30))
+        self.display.blit(image, (xydy[0] + (35 * (x + 1)), xydy[1] + (xydy[2] * y)))
+
+
+    def draw_drum_icon(self, index, x, y, dy):
+        y_shift = 0
+        image = None
+        if index == 0:
+            image = pygame.image.load('drum-icons/kick-drum.png')
+        elif index == 1:
+            image = pygame.image.load('drum-icons/snare-drum.png')
+            y_shift = dy
+        else:
+            image = pygame.image.load('drum-icons/high-hats.png')
+            y_shift = 2 * dy
+        image = pygame.transform.scale(image, (45, 45))
+        self.display.blit(image, (x, y + y_shift))
+
     def draw_drummer(self):
-        return
+        x = (4 * self.DISPLAY_W / 5) + 10
+        y = (2.7 * self.DISPLAY_H / 3) - 100
+        drummer = pygame.image.load('images/drummer-player.png')
+        self.display.blit(drummer, (x, y))
+
+        drumstick = pygame.image.load('drum-icons/drumstick.png')
+        drumstick = pygame.transform.scale(drumstick, (80, 120))
+
+        hit = False
+        for i in range(3):
+            if self.drums[self.tick][i] == 1:
+                hit = True
+
+        if hit:
+            self.blitRotateCenter(self.display, drumstick, (x - 40, y), 70)
+        else:
+            self.display.blit(drumstick, (x - 55, y - 30))
+
+    def blitRotateCenter(self, surf, image, topleft, angle):
+        rotated_image = pygame.transform.rotate(image, angle)
+        new_rect = rotated_image.get_rect(center = image.get_rect(topleft = topleft).center)
+
+        surf.blit(rotated_image, new_rect)
 
     def play_solo(self):
         for player in self.char_list:
             player.volume = 0.3
             pygame.mixer.Channel(player.index).set_volume(0.2)
+            self.index = None
         
         initial_volume_data = self.imu_data['RAy']
         volume_modifier_data = self.imu_data['LAy']
@@ -635,6 +783,7 @@ class Game:
         self.display.blit(pygame.image.load('images/help.png'), (self.DISPLAY_W- 40,15))
 
         
+
 
     def update_chord_or_note(self):
         if self.mouse_ui:
