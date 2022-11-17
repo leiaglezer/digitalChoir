@@ -144,7 +144,7 @@ class Game:
         # width/height each frame (all the same size, so can grab any image)
         self.width = self.char_list[0].frame_list[0].get_width()
         self.height = self.char_list[0].frame_list[0].get_height()
-        
+
 
     def game_loop(self):
         # only plays when player is IN game
@@ -707,6 +707,11 @@ class Game:
         y = (2.7 * self.DISPLAY_H / 3) - 100
         drummer = pygame.image.load('images/drummer-player.png')
         self.display.blit(drummer, (x, y))
+
+        drum_set = pygame.image.load('drum-icons/drum-kit.png')
+        drum_set = pygame.transform.scale(drum_set, (150, 150))
+        drum_set = pygame.transform.flip(drum_set, True, False)
+        self.display.blit(drum_set, (x - 150, y - 15))
 
         drumstick = pygame.image.load('drum-icons/drumstick.png')
         drumstick = pygame.transform.scale(drumstick, (80, 120))
