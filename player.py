@@ -14,7 +14,7 @@ from spritesheet import Spritesheet
 # B diminished: B – D – F
 
 class Player:
-    def __init__(self):
+    def __init__(self, index):
         # load frames into array
         self.right_selected = None
         self.middle_selected = None
@@ -34,6 +34,11 @@ class Player:
         # flag for all chars selected
         self.ALL_SELECTED = True
 
+        self.current_note = None
+        self.index = index
+        self.volume = 0
+        self.frame_volume = 0
+        self.face = None
 
 
 
@@ -53,6 +58,24 @@ class Player:
             self.ALL_SELECTED = False
             return None
 
+    # determines if one or all blobs are selected using gloves
+    def set_selected_blob_glove(self, imu_data):
+        x = imu_data['RAx']
+
+        # one char selected
+        if x >= self.index * 10 and x < (self.index + 1) * 10:
+            self.IS_SELECTED = True
+            self.ALL_SELECTED = False
+
+        # all selected, picked random x value it has to be greater then, will be button later
+        elif x >= 30:
+            self.ALL_SELECTED = True
+            self.IS_SELECTED = False
+        else:
+            self.IS_SELECTED = False
+            self.ALL_SELECTED = False
+            return None
+
     def set_location(self, index):
         self.x = index * 150 + 165
         self.y = 150
@@ -60,8 +83,45 @@ class Player:
     def draw(self, display, frame):
         display.blit(frame, (self.x, self.y))
 
+    def draw_solo(self, display):
+        x = self.x
+        y = self.y
+        clarinet = pygame.image.load('images/clarinet.png')
+        display.blit(self.frame_list[3 * int((self.current_note * 6) / 14) + int(self.volume * 2)], (x, y))
+        angle = -90 + ((self.current_note - 7) * 5)
+        self.blitRotateCenter(display, clarinet, (x + 15, y - (angle + 90)), angle)
+
+    def blitRotateCenter(self, surf, image, topleft, angle):
+        rotated_image = pygame.transform.rotate(image, angle)
+        new_rect = rotated_image.get_rect(center = image.get_rect(topleft = topleft).center)
+
+        surf.blit(rotated_image, new_rect)
+        
+
+    def give_note(self, note, sing_note):
+        if self.current_note != note:
+            self.current_note = note
+            sing_note(note, self.index)
+
+    def update_volume(self, sensor, sing_volume):
+        if sensor > 5:
+            self.volume = sensor / 31
+            if sensor > 15:
+                self.frame_volume = 2
+            else:
+                self.frame_volume = 1
+        else:
+            self.volume = 0
+            self.frame_volume = 0
+        sing_volume(self.volume, self.index)
+
+    def update_face(self, value):
+        self.face = value
+        self.frame = self.frame_list[self.face]
+
+
     def load_frames(self):
-        my_spritesheet = Spritesheet('image.png')
+        my_spritesheet = Spritesheet('images/image.png')
 
         self.frame_list = [my_spritesheet.parse_sprite("image0.png"),
                            my_spritesheet.parse_sprite("image1.png"),

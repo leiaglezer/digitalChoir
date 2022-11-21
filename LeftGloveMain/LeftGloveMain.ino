@@ -37,7 +37,7 @@ float Gx, Gy, Gz;
 int degreesX = 0;
 int degreesY = 0;
 int fc = 0, bc = 0, rc = 0, lc = 0; // gesture recognition counters
-int gestureMinLength = 15;
+int gestureMinLength = 12;
 int plusThreshold = 230, minusThreshold = -230;
 
 typedef union {
@@ -329,16 +329,16 @@ void onIMUdata() {
   }
 
   int numGestInc = 0;
-  if (fc > 0) {
+  if (fc > 2) {
     numGestInc++;
   }
-  if (bc > 0) {
+  if (bc > 2) {
     numGestInc++;
   }
-  if (rc > 0) {
+  if (rc > 2) {
     numGestInc++;
   }
-  if (lc > 0) {
+  if (lc > 2) {
     numGestInc++;
   }
   if (numGestInc > 1) {

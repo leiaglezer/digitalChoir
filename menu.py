@@ -4,6 +4,9 @@ class Menu():
     def __init__(self, game):
         #saves reference to game object
         self.game = game
+        self.initial_buttons = True
+        self.glove_selected = False
+        self.mouse_selected = False
         self.mid_w, self.mid_h = self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2
         #tells menu to keep running
         self.run_display = True
@@ -13,6 +16,22 @@ class Menu():
         # moves image onto computer screen
         pygame.display.update()
         self.game.reset_key()
+    
+    def draw_buttons(self):
+        if self.initial_buttons:
+            self.game.display.blit(pygame.image.load('images/mouse-button.png'), (170, 320))
+            self.game.display.blit(pygame.image.load('images/glove-button.png'), (405, 320))
+        if self.mouse_selected:
+            self.game.display.blit(pygame.image.load('images/mouse-selected-button.png'), (170, 320))
+            self.game.display.blit(pygame.image.load('images/glove-button.png'), (405, 320))
+            self.game.display.blit(pygame.image.load('images/enter-message.png'), (158, 405))
+
+        if self.glove_selected:
+            self.game.display.blit(pygame.image.load('images/mouse-button.png'), (170, 320))
+            self.game.display.blit(pygame.image.load('images/glove-selected-button.png'), (405, 320))
+            self.game.display.blit(pygame.image.load('images/glove-message.png'), (158, 405))
+
+        
 
 #inherit values of Menu class
 class MainMenu(Menu):
@@ -33,7 +52,11 @@ class MainMenu(Menu):
             #set Surface to black to reset it
             self.game.display.fill(self.game.BLACK)
             #draw background image
-            self.game.display.blit(pygame.image.load('splash.png'), (0, 0))
+            self.game.display.blit(pygame.image.load('images/splash.png'), (0, 0))
+            self.draw_buttons()
+
+ 
+
             #adds Surface to Window and Window to Screen
             self.blit_screen()
 

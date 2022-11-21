@@ -37,7 +37,7 @@ float Gx, Gy, Gz;
 int degreesX = 0;
 int degreesY = 0;
 int fc = 0, bc = 0, rc = 0, lc = 0; // gesture recognition counters
-int gestureMinLength = 15;
+int gestureMinLength = 12;
 int plusThreshold = 230, minusThreshold = -230;
 
 typedef union {
@@ -329,19 +329,20 @@ void onIMUdata() {
   }
 
   int numGestInc = 0;
-  if (fc > 0) {
+  if (fc > 2) {
     numGestInc++;
   }
-  if (bc > 0) {
+  if (bc > 2) {
     numGestInc++;
   }
-  if (rc > 0) {
+  if (rc > 2) {
     numGestInc++;
   }
-  if (lc > 0) {
+  if (lc > 2) {
     numGestInc++;
   }
   if (numGestInc > 1) {
+    // Serial.println("RESET");
     lc = 0;
     rc = 0;
     fc = 0;
@@ -354,21 +355,25 @@ void onIMUdata() {
     lc = 0;
     sampleBuffer[tempSamples] = (uint8_t) (0b01000010);
     tempSamples++;
+    // Serial.println("LEFT");
   }
   if (rc >= gestureMinLength) {
     rc = 0;
     sampleBuffer[tempSamples] = (uint8_t) (0b01000001);
     tempSamples++;
+    // Serial.println("RIGHT");
   }
   if (fc >= gestureMinLength) {
     fc = 0;
     sampleBuffer[tempSamples] = (uint8_t) (0b01000011);
     tempSamples++;
+    // Serial.println("FRONT");
   }
   if (bc >= gestureMinLength) {
     bc = 0;
     sampleBuffer[tempSamples] = (uint8_t) (0b01000000);
     tempSamples++;
+    // Serial.println("BACK");
   }
 
   samplesRead = tempSamples;
