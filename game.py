@@ -500,9 +500,15 @@ class Game:
             elif not self.drum_mode and self.last_gestures["LRIGHT"] > 0:
                 if not self.paused and self.index != None:
                     self.pitch_modifiers[self.index] += 1
+                elif not self.paused:
+                    for i in range(3):
+                        self.pitch_modifiers[i] += 1
             elif not self.drum_mode and self.last_gestures["LLEFT"] > 0:
                 if not self.paused and self.index != None:
                     self.pitch_modifiers[self.index] -= 1
+                elif not self.paused:
+                    for i in range(3):
+                        self.pitch_modifiers[i] -= 1
             elif self.drum_mode and (self.last_gestures["LRIGHT"] > 0 or self.last_gestures["LLEFT"] > 0):
                 self.drums[self.selected_drum[0]][self.selected_drum[1]] = 1 - self.drums[self.selected_drum[0]][self.selected_drum[1]]
                 
@@ -720,6 +726,8 @@ class Game:
         for i in range(3):
             if self.drums[self.tick][i] == 1:
                 hit = True
+        if self.drum_loop > 0 and self.tick % 2 == 0:
+            hit = True
 
         if hit:
             self.blitRotateCenter(self.display, drumstick, (x - 40, y), 70)
